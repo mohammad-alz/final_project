@@ -69,8 +69,8 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'digital_gold',
-        'USER': 'digital_gold_user',
-        'PASSWORD': 'kdfb&*Ew4r7hySDk{iod',
+        'USER': 'admin',
+        'PASSWORD': 'p&^Edr(P9jhVpiji7t%%hg',
         'HOST': 'localhost',
         'PORT': '5432',
     }
