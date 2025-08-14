@@ -21,7 +21,7 @@ class UserSerializer(serializers.ModelSerializer):
     rial_wallet = RialWalletSerializer(read_only=True)
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'phone_number','birth_date', 'national_id', 'gold_wallet', 'rial_wallet', 'password']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'phone_number', 'birth_date', 'national_id', 'gold_wallet', 'rial_wallet', 'password']
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
