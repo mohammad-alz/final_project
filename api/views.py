@@ -14,6 +14,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 from rest_framework.decorators import action
+from rest_framework.routers import APIRootView
+from rest_framework.reverse import reverse
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import (
     User, GoldTransaction, RialTransaction, Price, FAQ, License, GoldWallet, RialWallet
@@ -277,3 +279,22 @@ class CustomAuthToken(ObtainAuthToken):
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
+class CustomAPIRootView(APIRootView):
+    """
+    Adds custom links to the API Root page.
+    """
+    def get(self, request, *args, **kwargs):
+        # Get the default response from the router
+        response = super().get(request, *args, **kwargs)
+        
+        # Add your custom URLs
+        custom_data = {
+            'logout': reverse('auth_logout', request=request),
+            'price-chart': reverse('price-chart', request=request)
+            # We intentionally don't add the payment webhook as it's not for humans to browse
+        }
+        
+        # Combine the router's URLs with your custom ones
+        response.data.update(custom_data)
+        return response

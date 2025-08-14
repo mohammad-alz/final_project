@@ -3,14 +3,19 @@ from rest_framework import permissions
 from rest_framework.routers import DefaultRouter
 from .views import (
     UserViewSet, FAQViewSet, LicenseViewSet, PriceViewSet, GoldTradeViewSet,
-    RialWalletViewSet, GoldTransactionHistoryViewSet, RialTransactionHistoryViewSet, LogoutView, PaymentWebhookView, PriceChartView
+    RialWalletViewSet, GoldTransactionHistoryViewSet, RialTransactionHistoryViewSet, 
+    LogoutView, PaymentWebhookView, PriceChartView, CustomAPIRootView
 )
 
 class PublicAPIRootRouter(DefaultRouter):
     """
-    A custom router that makes the API Root view public.
+    A custom router that makes the API Root view public and uses our custom view class.
     """
+    # Tell the router to use our custom view for the root page
+    APIRootView = CustomAPIRootView
+
     def get_api_root_view(self, api_urls=None):
+        # This part that makes the page public is still needed
         root_view = super().get_api_root_view(api_urls=api_urls)
         root_view.cls.permission_classes = [permissions.AllowAny]
         return root_view

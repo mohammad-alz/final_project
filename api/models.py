@@ -16,7 +16,7 @@ class User(AbstractUser):
     birth_date = models.DateField(null=True, blank=True)
     national_id = models.CharField(max_length=20, unique=True)
     ref_code = models.CharField(max_length=10, blank=True, null=True)
-    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    phone_number = models.CharField(max_length=11, unique=True)
     
     def __str__(self): return self.username
 
