@@ -8,7 +8,7 @@ from django.core.mail import send_mail
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.utils import timezone
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, permissions, status, mixins
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -81,11 +81,12 @@ class PriceViewSet(viewsets.ModelViewSet):
 
 # --- Trading and Wallet Logic ---
 
-class GoldTradeViewSet(viewsets.ViewSet):
+class GoldTradeViewSet(mixins.ListModelMixin,viewsets.GenericViewSet):
     permission_classes = [permissions.IsAuthenticated]
     # Connect the new serializer to the view
     serializer_class = GoldTradeSerializer
-
+    queryset = GoldTransaction.objects.none()
+    
     def _trade(self, request, trade_type):
         user = request.user
 
@@ -131,9 +132,10 @@ class GoldTradeViewSet(viewsets.ViewSet):
     def sell(self, request):
         return self._trade(request, 'SELL')
 
-class RialWalletViewSet(viewsets.ViewSet):
+class RialWalletViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     permission_classes = [permissions.IsAuthenticated]
-
+    serializer_class = RialTransactionSerializer
+    queryset = RialTransaction.objects.none()
     @action(detail=False, methods=['post'])
     def deposit(self, request):
         try:
@@ -279,22 +281,3 @@ class CustomAuthToken(ObtainAuthToken):
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
-
-class CustomAPIRootView(APIRootView):
-    """
-    Adds custom links to the API Root page.
-    """
-    def get(self, request, *args, **kwargs):
-        # Get the default response from the router
-        response = super().get(request, *args, **kwargs)
-        
-        # Add your custom URLs
-        custom_data = {
-            'logout': reverse('auth_logout', request=request),
-            'price-chart': reverse('price-chart', request=request)
-            # We intentionally don't add the payment webhook as it's not for humans to browse
-        }
-        
-        # Combine the router's URLs with your custom ones
-        response.data.update(custom_data)
-        return response
