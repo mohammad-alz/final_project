@@ -14,6 +14,7 @@ class CustomAPIRootView(APIView):
             "faqs": reverse("api:faq-list", request=request),
             "licenses": reverse("api:license-list", request=request),
             "prices": reverse("api:price-list", request=request),
+            "chart": reverse("api:price-chart-list", request=request),
             "trade-gold": reverse("api:gold-trade-list", request=request),
             "wallet-rial": reverse("api:rial-wallet-list", request=request),
             "history-gold": reverse("api:gold-history-list", request=request),
