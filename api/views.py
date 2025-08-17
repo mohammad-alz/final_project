@@ -253,7 +253,7 @@ class PriceChartView(APIView):
         elif timeframe == 'monthly':
             start_date = end_date - timedelta(days=30)
         else: # 'daily'
-            start_date = end_date - timedelta(days=1)
+            start_date = end_date - timedelta(hours=24)
         
         # 3. Fetch all relevant data points from the database
         queryset = Price.objects.filter(
