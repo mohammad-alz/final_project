@@ -8,7 +8,7 @@ from django.core.mail import send_mail
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.utils import timezone
-from rest_framework import viewsets, permissions, status, mixins
+from rest_framework import viewsets, permissions, status, mixins,generics
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -65,19 +65,22 @@ class LicenseViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = LicenseSerializer
     permission_classes = [permissions.AllowAny]
 
-class PriceViewSet(viewsets.ModelViewSet):
-    queryset = Price.objects.all().order_by('-timestamp')
-    serializer_class = PriceSerializer
+class LatestPriceView(generics.GenericAPIView):
+    """
+    An endpoint that returns only the single, most recent price object.
+    """
+    permission_classes = [permissions.AllowAny]
+    serializer_class = PriceSerializer # Reuse the existing PriceSerializer
 
-    def get_permissions(self):
-        return [permissions.AllowAny()] if self.action in ['list', 'retrieve', 'latest'] else [permissions.IsAdminUser()]
-
-    @action(detail=False, methods=['get'])
-    def latest(self, request):
+    def get(self, request, *args, **kwargs):
         try:
-            return Response(self.get_serializer(Price.objects.latest('timestamp')).data)
+            # This is a very efficient way to get the latest record
+            latest_price = Price.objects.latest('timestamp')
+            serializer = self.get_serializer(latest_price)
+            return Response(serializer.data)
         except Price.DoesNotExist:
-            return Response({'error': 'Pricing not available'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return Response({"error": "No price data available."}, status=status.HTTP_404_NOT_FOUND)
+
 
 # --- Trading and Wallet Logic ---
 

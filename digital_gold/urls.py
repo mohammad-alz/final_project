@@ -13,7 +13,6 @@ class CustomAPIRootView(APIView):
             "users": reverse("api:user-list", request=request),
             "faqs": reverse("api:faq-list", request=request),
             "licenses": reverse("api:license-list", request=request),
-            "prices": reverse("api:price-list", request=request),
             "trade-gold": reverse("api:gold-trade-list", request=request),
             "wallet-rial": reverse("api:rial-wallet-list", request=request),
             "history-gold": reverse("api:gold-history-list", request=request),
@@ -22,6 +21,7 @@ class CustomAPIRootView(APIView):
             "token-refresh": reverse("api:token_refresh", request=request),
             "logout": reverse("api:auth_logout", request=request),
             "price-chart": reverse("api:price-chart", request=request),
+            "latest-price": reverse("api:latest-price", request=request)
         }
         return Response(dict(sorted(data.items())))
 
