@@ -23,10 +23,10 @@ router.register(r'history/gold', GoldTransactionHistoryViewSet, basename='gold-h
 router.register(r'history/rial', RialTransactionHistoryViewSet, basename='rial-history')
 
 urlpatterns = [
-    path('', include(router.urls)),
     path('auth/logout/', LogoutView.as_view(), name='auth_logout'),
     path('payments/webhook/', PaymentWebhookView.as_view(), name='payment-webhook'),
     path('prices/chart/', PriceChartView.as_view(), name='price-chart'),
     path('auth/token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('', include(router.urls)),
 ]
