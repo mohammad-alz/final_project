@@ -3,6 +3,11 @@ import json
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from api.models import Price
+import pprint
+
+# api/management/commands/update_gold_price.py
+
+# ... (imports are the same)
 
 class Command(BaseCommand):
     help = 'Fetches the latest 18k gold price from BrsApi.ir and saves it to the database in Rials.'
@@ -12,7 +17,7 @@ class Command(BaseCommand):
         if not api_key:
             raise CommandError('Please set BRS_API_KEY in your settings.py file.')
 
-        url = f"https://BrsApi.ir/Api/Tsetmc/AllSymbols.php?key={api_key}"
+        url = f"https://BrsApi.ir/Api/Market/Gold_Currency.php?key={api_key}"
         
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
@@ -25,25 +30,25 @@ class Command(BaseCommand):
             response.raise_for_status()
 
             data = response.json()
-            gold_list = data.get('gold', [])
-            
+
+            if isinstance(data, dict):
+                gold_list = data.get('gold', [])
+            elif isinstance(data, list):
+                gold_list = data # The response itself is the list we need
+            else:
+                raise CommandError("API response is in an unexpected format.")
+
             price_in_toman = None
             for item in gold_list:
-                if item.get('symbol') == 'IR_GOLD_18K':
-                    # قیمت دریافتی به تومان است
+                # The item must be a dictionary to have a .get() method
+                if isinstance(item, dict) and item.get('symbol') == 'IR_GOLD_18K':
                     price_in_toman = int(item.get('price'))
                     break
             
             if price_in_toman is not None:
-                # --- این خط کد جدید است ---
-                # تبدیل تومان به ریال
                 price_in_rials = price_in_toman * 10
-                
-                # ذخیره قیمت جدید به ریال در دیتابیس
                 Price.objects.create(price=price_in_rials)
-                
                 self.stdout.write(self.style.SUCCESS(
-                    # پیام موفقیت را هم اصلاح می‌کنیم
                     f'Successfully fetched and saved new 18k gold price: {price_in_rials} Rials'
                 ))
             else:

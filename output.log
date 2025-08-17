@@ -1,0 +1,13 @@
+CommandError: An unexpected error occurred: 'charmap' codec can't encode characters in position 1-5: character maps to <undefined>
+Connecting to API to get the latest gold price...
+--- Raw API Response ---
+[{'Buy_CountI': 11350,
+  'Buy_CountN': 36,
+  'Buy_I_Volume': 42305221,
+  'Buy_N_Volume': 941342,
+  'Sell_CountI': 5152,
+  'Sell_CountN': 20,
+  'Sell_I_Volume': 31880327,
+  'Sell_N_Volume': 11366236,
+  'bvol': 1,
+  'cs': 
