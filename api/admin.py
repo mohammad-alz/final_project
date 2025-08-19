@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import (
     User, GoldWallet, RialWallet, GoldTransaction,
-    RialTransaction, Price, FAQ, License, BankAccount
+    RialTransaction, Price, FAQ, License, BankAccount,
+    Ticket, TicketAttachment
 )
 
 class UserAdmin(admin.ModelAdmin):
@@ -54,7 +55,18 @@ class BankAccountAdmin(admin.ModelAdmin):
     list_filter = ('status', 'bank_name')
     search_fields = ('user__username', 'card_number')
     readonly_fields = ('user',)
-    
+
+class TicketAdmin(admin.ModelAdmin):
+    list_display = ('user', 'title', 'description', 'priority', 'status', 'created_at')
+    list_filter = ('status', 'priority')
+    search_fields = ('user__username', 'title')
+    readonly_fields = ('user', 'title', 'description')
+
+class TicketAttachmentAdmin(admin.ModelAdmin):
+    list_display = ('ticket', 'ticket__user', 'file', 'uploaded_at')
+    search_fields = ('ticket__user__username', 'ticket__id')
+    readonly_fields = ('ticket',)
+
 admin.site.register(User, UserAdmin)
 admin.site.register(GoldWallet, GoldWalletAdmin)
 admin.site.register(RialWallet, RialWalletAdmin)
@@ -64,3 +76,5 @@ admin.site.register(Price, PriceAdmin)
 admin.site.register(FAQ, FAQAdmin)
 admin.site.register(License, LicenseAdmin)
 admin.site.register(BankAccount, BankAccountAdmin)
+admin.site.register(Ticket, TicketAdmin)
+admin.site.register(TicketAttachment, TicketAttachmentAdmin)
