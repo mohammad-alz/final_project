@@ -142,4 +142,9 @@ class RialTransaction(models.Model):
     )
     class TransactionType(models.TextChoices): DEPOSIT = 'DEPOSIT', 'Deposit'; WITHDRAWAL = 'WITHDRAWAL', 'Withdrawal'
     class Status(models.TextChoices): COMPLETED = 'COMPLETED', 'Completed'; PENDING = 'PENDING', 'Pending'; FAILED = 'FAILED', 'Failed'
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='rial_transactions'); transaction_type = models.CharField(max_length=10, choices=TransactionType.choices); amount = models.BigIntegerField(); timestamp = models.DateTimeField(auto_now_add=True); status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING); bank_transaction_id = models.CharField(max_length=100, blank=True, null=True, unique=True); notes = models.TextField(blank=True, null=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='rial_transactions')
+    transaction_type = models.CharField(max_length=10, choices=TransactionType.choices)
+    amount = models.BigIntegerField(); timestamp = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    bank_transaction_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
+    notes = models.TextField(blank=True, null=True)

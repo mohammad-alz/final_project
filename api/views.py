@@ -23,7 +23,8 @@ from .models import (
 from .serializers import (
     UserSerializer, GoldTransactionSerializer, RialTransactionSerializer,
     PriceSerializer, FAQSerializer, LicenseSerializer,GoldTradeSerializer,
-    MyTokenObtainPairSerializer, BankAccountSerializer, EmptySerializer
+    MyTokenObtainPairSerializer, BankAccountSerializer, EmptySerializer,
+    RialTransactionActionSerializer
 )
 
 # --- User and Public Views ---
@@ -137,86 +138,65 @@ class GoldTradeViewSet(mixins.ListModelMixin,viewsets.GenericViewSet):
 
 class RialWalletViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = RialTransactionSerializer
     queryset = RialTransaction.objects.none()
+
+    def get_serializer_class(self):
+        # Use our new input serializer for the deposit and withdraw actions
+        if self.action in ['deposit', 'withdraw']:
+            return RialTransactionActionSerializer
+        # Use the default serializer for other actions (like the list view)
+        return RialTransactionSerializer
+    
+    def get_serializer(self, *args, **kwargs):
+        # This method dynamically filters the queryset for the dropdown field
+        serializer = super().get_serializer(*args, **kwargs)
+        if self.action in ['deposit', 'withdraw']:
+            # Get only the current user's VERIFIED bank accounts
+            user_accounts = BankAccount.objects.filter(
+                user=self.request.user,
+                status=BankAccount.VerificationStatus.VERIFIED
+            )
+            # Apply this filtered queryset to the dropdown field
+            serializer.fields['bank_account'].queryset = user_accounts
+        return serializer
+
     @action(detail=False, methods=['post'])
     def deposit(self, request):
-        user = request.user
-        try:
-            amount = int(request.data['amount'])
-            # 1. Get the required bank account ID
-            bank_account_id = int(request.data['bank_account_id'])
-        except (ValueError, TypeError, KeyError):
-            return Response({'error': 'A valid amount and bank_account_id are required.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # 2. Validate the bank account
-        try:
-            # Check that the account exists, belongs to the user, and is VERIFIED.
-            account = BankAccount.objects.get(
-                pk=bank_account_id, 
-                user=user, 
-                status=BankAccount.VerificationStatus.VERIFIED
-            )
-        except BankAccount.DoesNotExist:
-            return Response({'error': 'A valid and verified bank account must be selected.'}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
         
-        if amount <= 0:
-            return Response({'error': 'Amount must be positive'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # 3. Create the transaction, linking the required account
         tx = RialTransaction.objects.create(
-            user=user, 
+            user=request.user, 
             transaction_type='DEPOSIT', 
-            amount=amount, 
+            amount=data['amount'], 
             status='PENDING',
-            bank_account=account
+            bank_account=data['bank_account']
         )
-        
         return Response({'message': 'Deposit request received', 'transaction': RialTransactionSerializer(tx).data}, status=status.HTTP_202_ACCEPTED)
 
-    
     @action(detail=False, methods=['post'])
     def withdraw(self, request):
-        user = request.user
-        try:
-            amount = int(request.data.get('amount'))
-            # 1. Get the selected bank account ID from the request
-            bank_account_id = int(request.data.get('bank_account_id'))
-        except (ValueError, TypeError, TypeError):
-            return Response({'error': 'Invalid amount or bank_account_id.'}, status=status.HTTP_400_BAD_REQUEST)
-
-        # 2. Validate the bank account
-        try:
-            # Check that the account exists, belongs to the user, and is verified.
-            account = BankAccount.objects.get(
-                pk=bank_account_id, 
-                user=user, 
-                status=BankAccount.VerificationStatus.VERIFIED
-            )
-        except BankAccount.DoesNotExist:
-            return Response({'error': 'Invalid or unverified bank account selected.'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        # 3. Perform the transaction
-        if amount <= 0:
-            return Response({'error': 'Amount must be positive'}, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
         
         with transaction.atomic():
-            rial_wallet = RialWallet.objects.select_for_update().get(user=user)
-            if rial_wallet.balance < amount:
+            rial_wallet = RialWallet.objects.select_for_update().get(user=request.user)
+            if rial_wallet.balance < data['amount']:
                 return Response({'error': 'Insufficient funds'}, status=status.HTTP_400_BAD_REQUEST)
             
-            rial_wallet.balance -= amount
+            rial_wallet.balance -= data['amount']
             rial_wallet.save()
             
             tx = RialTransaction.objects.create(
-                user=user, 
+                user=request.user, 
                 transaction_type='WITHDRAWAL', 
-                amount=amount, 
+                amount=data['amount'], 
                 status='PENDING',
-                bank_account=account # Link the account here
+                bank_account=data['bank_account']
             )
         return Response({'message': 'Withdrawal request received', 'transaction': RialTransactionSerializer(tx).data}, status=status.HTTP_202_ACCEPTED)
-
 
 
 # --- Transaction History ---

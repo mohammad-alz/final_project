@@ -96,3 +96,11 @@ class RialTransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = RialTransaction
         fields = '__all__'
+
+class RialTransactionActionSerializer(serializers.Serializer):
+    amount = serializers.IntegerField(min_value=1)
+    # This field will render as a dropdown of the user's bank accounts
+    bank_account = serializers.PrimaryKeyRelatedField(
+        queryset=BankAccount.objects.all(),
+        help_text="Select one of your verified bank accounts."
+    )
