@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
+from django.core.validators import RegexValidator
 # --- Soft Delete Manager ---
 # This custom manager will automatically filter out objects marked as inactive.
 class SoftDeleteManager(models.Manager):
@@ -117,8 +117,16 @@ class BankAccount(models.Model):
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bank_accounts')
     bank_name = models.CharField(max_length=100)
-    # A standard Iranian card number is 16 digits.
-    card_number = models.CharField(max_length=16, unique=True)
+
+    card_number_validator = RegexValidator(
+        regex=r'^\d{16}$',
+        message="Card number must be exactly 16 digits."
+    )
+    card_number = models.CharField(
+        validators=[card_number_validator], 
+        max_length=16, 
+        unique=True
+    )
     status = models.CharField(
         max_length=10, 
         choices=VerificationStatus.choices, 
