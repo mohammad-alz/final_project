@@ -22,9 +22,9 @@ class GoldTransactionAdmin(admin.ModelAdmin):
     search_fields = ('user__username',)
 
 class RialTransactionAdmin(admin.ModelAdmin):
-    list_display = ('user', 'transaction_type', 'amount', 'status', 'timestamp')
+    list_display = ('user', 'transaction_type', 'amount', 'status', 'timestamp', 'bank_account')
     list_filter = ('status', 'transaction_type', 'timestamp')
-    search_fields = ('user__username',)
+    search_fields = ('user__username','bank_account')
 
 class PriceAdmin(admin.ModelAdmin):
     list_display = ('price', 'timestamp')
