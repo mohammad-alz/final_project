@@ -3,7 +3,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import (
     User, GoldWallet, RialWallet, GoldTransaction, RialTransaction,
-    Price, FAQ, License
+    Price, FAQ, License, BankAccount
 )
 
 class GoldWalletSerializer(serializers.ModelSerializer):
@@ -77,3 +77,20 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['phone_number'] = user.phone_number
 
         return token
+    
+
+class BankAccountSerializer(serializers.ModelSerializer):
+    # This new field creates the clickable link
+    url = serializers.HyperlinkedIdentityField(
+        view_name='api:admin-bank-account-detail',
+        lookup_field='pk'
+    )
+    
+    class Meta:
+        model = BankAccount
+        read_only_fields = ['user', 'status']
+        # Add 'url' to the beginning of the fields list
+        fields = ['url', 'id', 'bank_name', 'card_number', 'status', 'user']
+
+class EmptySerializer(serializers.Serializer):
+    pass

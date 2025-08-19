@@ -21,7 +21,9 @@ class CustomAPIRootView(APIView):
             "token-refresh": reverse("api:token_refresh", request=request),
             "logout": reverse("api:auth_logout", request=request),
             "price-chart": reverse("api:price-chart", request=request),
-            "latest-price": reverse("api:latest-price", request=request)
+            "latest-price": reverse("api:latest-price", request=request),
+            "my-bank-account": reverse("api:my-bank-account-list", request=request),
+            "admin-bank-account": reverse("api:admin-bank-account-list", request=request),
         }
         return Response(dict(sorted(data.items())))
 

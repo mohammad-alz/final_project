@@ -9,7 +9,7 @@ from .views import (
     UserViewSet, FAQViewSet, LicenseViewSet, GoldTradeViewSet,
     RialWalletViewSet, GoldTransactionHistoryViewSet, RialTransactionHistoryViewSet, 
     LogoutView, PaymentWebhookView, PriceChartView,MyTokenObtainPairView,
-    LatestPriceView,
+    LatestPriceView, UserBankAccountViewSet, AdminBankAccountViewSet
 )
 
 router = DefaultRouter()
@@ -21,6 +21,8 @@ router.register(r'trade/gold', GoldTradeViewSet, basename='gold-trade')
 router.register(r'wallet/rial', RialWalletViewSet, basename='rial-wallet')
 router.register(r'history/gold', GoldTransactionHistoryViewSet, basename='gold-history')
 router.register(r'history/rial', RialTransactionHistoryViewSet, basename='rial-history')
+router.register(r'my-bank-accounts', UserBankAccountViewSet, basename='my-bank-account')
+router.register(r'admin/bank-accounts', AdminBankAccountViewSet, basename='admin-bank-account')
 
 urlpatterns = [
     path('auth/logout/', LogoutView.as_view(), name='auth_logout'),

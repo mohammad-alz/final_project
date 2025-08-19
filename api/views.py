@@ -18,12 +18,12 @@ from rest_framework.routers import APIRootView
 from rest_framework.reverse import reverse
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import (
-    User, GoldTransaction, RialTransaction, Price, FAQ, License, GoldWallet, RialWallet
+    User, GoldTransaction, RialTransaction, Price, FAQ, License, GoldWallet, RialWallet, BankAccount
 )
 from .serializers import (
     UserSerializer, GoldTransactionSerializer, RialTransactionSerializer,
     PriceSerializer, FAQSerializer, LicenseSerializer,GoldTradeSerializer,
-    MyTokenObtainPairSerializer,
+    MyTokenObtainPairSerializer, BankAccountSerializer, EmptySerializer
 )
 
 # --- User and Public Views ---
@@ -284,3 +284,49 @@ class CustomAuthToken(ObtainAuthToken):
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
+class UserBankAccountViewSet(viewsets.ModelViewSet):
+    """
+    Allows users to add, view, and delete their own bank accounts.
+    """
+    serializer_class = BankAccountSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # A user can only ever see their own bank accounts.
+        return BankAccount.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        # When creating a new bank account, automatically assign it to the logged-in user.
+        serializer.save(user=self.request.user)
+
+# --- View for ADMINS to manage all accounts ---
+class AdminBankAccountViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Allows admins to view all bank accounts and verify them.
+    """
+    serializer_class = BankAccountSerializer
+    permission_classes = [permissions.IsAdminUser] # Only admins can access
+    queryset = BankAccount.objects.all()
+
+    def get_serializer_class(self):
+        if self.action in ['verify', 'reject']:
+            return EmptySerializer
+        return super().get_serializer_class()
+
+
+    @action(detail=True, methods=['post'])
+    def verify(self, request, pk=None):
+        """An action to mark an account as verified."""
+        account = self.get_object()
+        account.status = BankAccount.VerificationStatus.VERIFIED
+        account.save()
+        return Response({'status': 'Account verified'})
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """An action to mark an account as rejected."""
+        account = self.get_object()
+        account.status = BankAccount.VerificationStatus.REJECTED
+        account.save()
+        return Response({'status': 'Account rejected'})

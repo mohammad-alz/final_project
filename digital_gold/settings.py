@@ -14,7 +14,7 @@ PAYMENT_WEBHOOK_SECRET = 'YOUR_PAYMENT_GATEWAY_WEBHOOK_SECRET_KEY'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['45.138.135.212', '127.0.0.1']
+ALLOWED_HOSTS = ['45.138.135.212', '127.0.0.1', 'localhost']
 
 
 # Application definition

@@ -108,3 +108,23 @@ class License(models.Model):
         """Restores a soft-deleted object."""
         self.is_active = True
         self.save()
+
+class BankAccount(models.Model):
+    class VerificationStatus(models.TextChoices):
+        PENDING = 'PENDING', 'Pending'
+        VERIFIED = 'VERIFIED', 'Verified'
+        REJECTED = 'REJECTED', 'Rejected'
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bank_accounts')
+    bank_name = models.CharField(max_length=100)
+    # A standard Iranian card number is 16 digits.
+    card_number = models.CharField(max_length=16, unique=True)
+    status = models.CharField(
+        max_length=10, 
+        choices=VerificationStatus.choices, 
+        default=VerificationStatus.PENDING
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.card_number}"
