@@ -235,22 +235,19 @@ class PaymentWebhookView(APIView):
 class PriceChartView(APIView):
     """
     Provides evenly sampled data for a simple chart.
-    Accepts:
-    - timeframe: 'daily', 'weekly', 'monthly' (default: 'daily')
-    - points: The number of data points to return (default: 100)
     """
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, *args, **kwargs):
-        # 1. Get parameters from the URL
         timeframe = request.query_params.get('timeframe', 'daily')
         try:
             points_count = int(request.query_params.get('points', '100'))
+            if points_count <= 1: points_count = 2 # Need at least 2 points
         except (ValueError, TypeError):
             points_count = 100
 
-        # 2. Determine the date range
         end_date = timezone.now()
+        
         if timeframe == 'weekly':
             start_date = end_date - timedelta(days=7)
         elif timeframe == 'monthly':
@@ -258,24 +255,33 @@ class PriceChartView(APIView):
         else: # 'daily'
             start_date = end_date - timedelta(days=1)
         
-        # 3. Fetch all relevant data points from the database
+        # 1. Get the full queryset for the time range
         queryset = Price.objects.filter(
             timestamp__gte=start_date
         ).order_by('timestamp')
         
-        # 4. Sample the data to get the desired number of points
+        # 2. Perform sampling only if necessary
         total_points_in_db = queryset.count()
+
         if total_points_in_db > points_count:
-            # Calculate the step to slice the queryset
-            step = total_points_in_db // points_count
-            if step == 0:
-                 step = 1 # prevent step from being zero
-            sampled_queryset = queryset[::step]
+            # Get a list of all the primary keys (IDs) in the queryset
+            all_pks = list(queryset.values_list('pk', flat=True))
+            
+            # Calculate a floating-point step
+            step = (total_points_in_db - 1) / (points_count - 1)
+            
+            # Find the indices of the points we want to pick
+            sampled_indices = [int(round(i * step)) for i in range(points_count)]
+            
+            # Get the primary keys (IDs) at those specific indices
+            sampled_pks = [all_pks[i] for i in sampled_indices]
+            
+            # Fetch only the objects with those specific IDs
+            sampled_queryset = Price.objects.filter(pk__in=sampled_pks).order_by('timestamp')
         else:
-            # If we have fewer points in the DB than requested, return all of them
+            # If we don't have enough data to sample, return it all
             sampled_queryset = queryset
 
-        # 5. Serialize and return the sampled data
         serializer = PriceSerializer(sampled_queryset, many=True)
         return Response(serializer.data)
     
