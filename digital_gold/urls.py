@@ -4,6 +4,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework import permissions
+from django.conf import settings
+from django.conf.urls.static import static
 
 class CustomAPIRootView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -24,6 +26,7 @@ class CustomAPIRootView(APIView):
             "latest-price": reverse("api:latest-price", request=request),
             "my-bank-account": reverse("api:my-bank-account-list", request=request),
             "admin-bank-account": reverse("api:admin-bank-account-list", request=request),
+            "ticket": reverse("api:ticket-list", request=request),
         }
         return Response(dict(sorted(data.items())))
 
@@ -33,3 +36,6 @@ urlpatterns = [
     path('api/', CustomAPIRootView.as_view(), name='api-root'),
     path('api/', include(('api.urls', 'api'), namespace='api')),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -8,6 +8,7 @@ from django.core.mail import send_mail
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.utils import timezone
+from django.conf import settings
 from rest_framework import viewsets, permissions, status, mixins,generics
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.views import APIView
@@ -16,15 +17,17 @@ from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 from rest_framework.decorators import action
 from rest_framework.routers import APIRootView
 from rest_framework.reverse import reverse
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import (
-    User, GoldTransaction, RialTransaction, Price, FAQ, License, GoldWallet, RialWallet, BankAccount
+    User, GoldTransaction, RialTransaction, Price, FAQ, License,
+    GoldWallet, RialWallet, BankAccount,Ticket
 )
 from .serializers import (
     UserSerializer, GoldTransactionSerializer, RialTransactionSerializer,
     PriceSerializer, FAQSerializer, LicenseSerializer,GoldTradeSerializer,
     MyTokenObtainPairSerializer, BankAccountSerializer, EmptySerializer,
-    RialTransactionActionSerializer
+    RialTransactionActionSerializer, TicketSerializer
 )
 
 # --- User and Public Views ---
@@ -367,3 +370,20 @@ class AdminBankAccountViewSet(viewsets.ReadOnlyModelViewSet):
         account.status = BankAccount.VerificationStatus.REJECTED
         account.save()
         return Response({'status': 'Account rejected'})
+    
+class TicketViewSet(viewsets.ModelViewSet):
+    """
+    Allows users to create and manage their support tickets.
+    """
+    serializer_class = TicketSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    # Add parsers to handle file uploads
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get_queryset(self):
+        # A user can only see their own tickets
+        return Ticket.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        # Automatically assign the ticket to the logged-in user
+        serializer.save(user=self.request.user)

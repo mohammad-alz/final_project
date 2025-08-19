@@ -4,6 +4,8 @@ from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.validators import RegexValidator
+from django.conf import settings
+
 # --- Soft Delete Manager ---
 # This custom manager will automatically filter out objects marked as inactive.
 class SoftDeleteManager(models.Manager):
@@ -148,3 +150,32 @@ class RialTransaction(models.Model):
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
     bank_transaction_id = models.CharField(max_length=100, blank=True, null=True, unique=True)
     notes = models.TextField(blank=True, null=True)
+
+class Ticket(models.Model):
+    class Priority(models.TextChoices):
+        LOW = 'LOW', 'Low'
+        MEDIUM = 'MEDIUM', 'Medium'
+        HIGH = 'HIGH', 'High'
+
+    class Status(models.TextChoices):
+        OPEN = 'OPEN'
+        IN_PROGRESS = 'IN_PROGRESS', 'In Progress'
+        CLOSED = 'CLOSED', 'Closed'
+
+    user =models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tickets')
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    priority = models.CharField(max_length=10, choices=Priority.choices, default=Priority.LOW)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title
+    
+class TicketAttachment(models.Model):
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='attachments')
+    file = models.FileField(upload_to='attachments/%Y/%m/%d/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.file.name

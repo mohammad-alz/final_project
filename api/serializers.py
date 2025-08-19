@@ -3,7 +3,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import (
     User, GoldWallet, RialWallet, GoldTransaction, RialTransaction,
-    Price, FAQ, License, BankAccount
+    Price, FAQ, License, BankAccount, Ticket, TicketAttachment,
 )
 
 class GoldWalletSerializer(serializers.ModelSerializer):
@@ -104,3 +104,32 @@ class RialTransactionActionSerializer(serializers.Serializer):
         queryset=BankAccount.objects.all(),
         help_text="Select one of your verified bank accounts."
     )
+
+class TicketAttachmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TicketAttachment
+        fields = ['id', 'file', 'uploaded_at']
+
+class TicketSerializer(serializers.ModelSerializer):
+    attachments = TicketAttachmentSerializer(many = True, read_only=True)
+    uploaded_attachments = serializers.ListField(
+        child = serializers.FileField(allow_empty_file=False),
+        write_only=True,
+        required=False
+    )
+
+    class Meta:
+        model = Ticket
+        fields = ['id', 'title', 'description', 'priority', 'status', 'created_at', 'attachments', 'uploaded_attachments']
+        read_only_fileds = ['status']
+
+    def create(self, validated_data):
+        uploaded_files = validated_data.pop('uploaded_attachments', [])
+        ticket = Ticket.objects.create(**validated_data)
+
+        for file in uploaded_files:
+            TicketAttachment.objects.create(ticket=ticket, file=file)
+        return ticket
+    
+
+    
