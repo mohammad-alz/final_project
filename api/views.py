@@ -141,31 +141,82 @@ class RialWalletViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = RialTransaction.objects.none()
     @action(detail=False, methods=['post'])
     def deposit(self, request):
+        user = request.user
         try:
-            amount = int(request.data.get('amount'))
-        except (ValueError, TypeError):
-            return Response({'error': 'Invalid amount'}, status=status.HTTP_400_BAD_REQUEST)
+            amount = int(request.data['amount'])
+            # 1. Get the required bank account ID
+            bank_account_id = int(request.data['bank_account_id'])
+        except (ValueError, TypeError, KeyError):
+            return Response({'error': 'A valid amount and bank_account_id are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2. Validate the bank account
+        try:
+            # Check that the account exists, belongs to the user, and is VERIFIED.
+            account = BankAccount.objects.get(
+                pk=bank_account_id, 
+                user=user, 
+                status=BankAccount.VerificationStatus.VERIFIED
+            )
+        except BankAccount.DoesNotExist:
+            return Response({'error': 'A valid and verified bank account must be selected.'}, status=status.HTTP_400_BAD_REQUEST)
+        
         if amount <= 0:
             return Response({'error': 'Amount must be positive'}, status=status.HTTP_400_BAD_REQUEST)
-        tx = RialTransaction.objects.create(user=request.user, transaction_type='DEPOSIT', amount=amount, status='PENDING')
+        
+        # 3. Create the transaction, linking the required account
+        tx = RialTransaction.objects.create(
+            user=user, 
+            transaction_type='DEPOSIT', 
+            amount=amount, 
+            status='PENDING',
+            bank_account=account
+        )
+        
         return Response({'message': 'Deposit request received', 'transaction': RialTransactionSerializer(tx).data}, status=status.HTTP_202_ACCEPTED)
 
+    
     @action(detail=False, methods=['post'])
     def withdraw(self, request):
+        user = request.user
         try:
             amount = int(request.data.get('amount'))
-        except (ValueError, TypeError):
-            return Response({'error': 'Invalid amount'}, status=status.HTTP_400_BAD_REQUEST)
+            # 1. Get the selected bank account ID from the request
+            bank_account_id = int(request.data.get('bank_account_id'))
+        except (ValueError, TypeError, TypeError):
+            return Response({'error': 'Invalid amount or bank_account_id.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2. Validate the bank account
+        try:
+            # Check that the account exists, belongs to the user, and is verified.
+            account = BankAccount.objects.get(
+                pk=bank_account_id, 
+                user=user, 
+                status=BankAccount.VerificationStatus.VERIFIED
+            )
+        except BankAccount.DoesNotExist:
+            return Response({'error': 'Invalid or unverified bank account selected.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # 3. Perform the transaction
         if amount <= 0:
             return Response({'error': 'Amount must be positive'}, status=status.HTTP_400_BAD_REQUEST)
+        
         with transaction.atomic():
-            rial_wallet = RialWallet.objects.select_for_update().get(user=request.user)
+            rial_wallet = RialWallet.objects.select_for_update().get(user=user)
             if rial_wallet.balance < amount:
                 return Response({'error': 'Insufficient funds'}, status=status.HTTP_400_BAD_REQUEST)
+            
             rial_wallet.balance -= amount
             rial_wallet.save()
-            tx = RialTransaction.objects.create(user=request.user, transaction_type='WITHDRAWAL', amount=amount, status='PENDING')
+            
+            tx = RialTransaction.objects.create(
+                user=user, 
+                transaction_type='WITHDRAWAL', 
+                amount=amount, 
+                status='PENDING',
+                bank_account=account # Link the account here
+            )
         return Response({'message': 'Withdrawal request received', 'transaction': RialTransactionSerializer(tx).data}, status=status.HTTP_202_ACCEPTED)
+
 
 
 # --- Transaction History ---

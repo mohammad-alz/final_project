@@ -42,11 +42,6 @@ class GoldTransactionSerializer(serializers.ModelSerializer):
         model = GoldTransaction
         fields = '__all__' # Shows quantity in milligrams
 
-class RialTransactionSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField()
-    class Meta:
-        model = RialTransaction
-        fields = '__all__'
 
 class FAQSerializer(serializers.ModelSerializer):
     class Meta:
@@ -94,3 +89,10 @@ class BankAccountSerializer(serializers.ModelSerializer):
 
 class EmptySerializer(serializers.Serializer):
     pass
+
+class RialTransactionSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField()
+    bank_account = BankAccountSerializer(read_only=True)
+    class Meta:
+        model = RialTransaction
+        fields = '__all__'

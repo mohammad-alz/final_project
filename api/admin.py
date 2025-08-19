@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     User, GoldWallet, RialWallet, GoldTransaction,
-    RialTransaction, Price, FAQ, License
+    RialTransaction, Price, FAQ, License, BankAccount
 )
 
 class UserAdmin(admin.ModelAdmin):
@@ -49,6 +49,12 @@ class LicenseAdmin(admin.ModelAdmin):
         # Tell the admin to use the all_objects manager to show all items
         return License.all_objects.all()
     
+class BankAccountAdmin(admin.ModelAdmin):
+    list_display = ('user', 'bank_name', 'card_number', 'status', 'created_at')
+    list_filter = ('status', 'bank_name')
+    search_fields = ('user__username', 'card_number')
+    readonly_fields = ('user',)
+    
 admin.site.register(User, UserAdmin)
 admin.site.register(GoldWallet, GoldWalletAdmin)
 admin.site.register(RialWallet, RialWalletAdmin)
@@ -57,3 +63,4 @@ admin.site.register(RialTransaction, RialTransactionAdmin)
 admin.site.register(Price, PriceAdmin)
 admin.site.register(FAQ, FAQAdmin)
 admin.site.register(License, LicenseAdmin)
+admin.site.register(BankAccount, BankAccountAdmin)
