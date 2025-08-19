@@ -27,7 +27,7 @@ from .serializers import (
     UserSerializer, GoldTransactionSerializer, RialTransactionSerializer,
     PriceSerializer, FAQSerializer, LicenseSerializer,GoldTradeSerializer,
     MyTokenObtainPairSerializer, BankAccountSerializer, EmptySerializer,
-    RialTransactionActionSerializer, TicketSerializer
+    RialTransactionActionSerializer, TicketCreateSerializer, TicketDetailSerializer
 )
 
 # --- User and Public Views ---
@@ -375,7 +375,6 @@ class TicketViewSet(viewsets.ModelViewSet):
     """
     Allows users to create and manage their support tickets.
     """
-    serializer_class = TicketSerializer
     permission_classes = [permissions.IsAuthenticated]
     # Add parsers to handle file uploads
     parser_classes = [MultiPartParser, FormParser]
@@ -387,3 +386,9 @@ class TicketViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # Automatically assign the ticket to the logged-in user
         serializer.save(user=self.request.user)
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return TicketCreateSerializer
+        # For 'list', 'retrieve', etc., use the detail serializer
+        return TicketDetailSerializer

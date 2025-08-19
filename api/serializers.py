@@ -110,23 +110,29 @@ class TicketAttachmentSerializer(serializers.ModelSerializer):
         model = TicketAttachment
         fields = ['id', 'file', 'uploaded_at']
 
-class TicketSerializer(serializers.ModelSerializer):
-    attachments = TicketAttachmentSerializer(many = True, read_only=True)
+class TicketDetailSerializer(serializers.ModelSerializer):
+    attachments = TicketAttachmentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Ticket
+        fields = ['id', 'title', 'description', 'priority', 'status', 'created_at', 'attachments']
+
+# --- NEW: This serializer is for CREATING/UPDATING a ticket ---
+class TicketCreateSerializer(serializers.ModelSerializer):
     uploaded_attachments = serializers.ListField(
-        child = serializers.FileField(allow_empty_file=False),
-        write_only=True,
-        required=False
+        child=serializers.FileField(allow_empty_file=False),
+        write_only=True, required=False
     )
 
     class Meta:
         model = Ticket
-        fields = ['id', 'title', 'description', 'priority', 'status', 'created_at', 'attachments', 'uploaded_attachments']
-        read_only_fileds = ['status']
+        # Notice 'status' is NOT in this list
+        fields = ['title', 'description', 'priority', 'uploaded_attachments']
 
     def create(self, validated_data):
         uploaded_files = validated_data.pop('uploaded_attachments', [])
+        # The status will be set to its default value ('OPEN') automatically
         ticket = Ticket.objects.create(**validated_data)
-
         for file in uploaded_files:
             TicketAttachment.objects.create(ticket=ticket, file=file)
         return ticket
