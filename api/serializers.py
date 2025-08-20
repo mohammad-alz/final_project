@@ -102,7 +102,7 @@ class AdminBankAccountSerializer(serializers.ModelSerializer):
 BANK_LOGOS = {
     'mli': 'api/images/bank_logos/mli.png',
     'maaaa3can': 'api/images/bank_logos/maaaa3can.png',
-    'beeeluuu': 'api/images/bank_logos/pasargad.png',
+    'beeeluuu': 'api/images/bank_logos/beeeluuu.png',
     # Add all other bank names and their logo filenames here
 }
 
