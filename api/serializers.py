@@ -116,10 +116,11 @@ class TicketAttachmentSerializer(serializers.ModelSerializer):
 class TicketDetailSerializer(serializers.ModelSerializer):
     attachments = TicketAttachmentSerializer(many=True, read_only=True)
     answered_by = serializers.StringRelatedField(read_only=True)
-
+    url = serializers.HyperlinkedIdentityField(view_name='api:ticket-detail')
+    
     class Meta:
         model = Ticket
-        fields = ['id', 'title', 'description', 'priority', 'status', 'created_at', 'attachments', 'answer', 'answered_at', 'answered_by']
+        fields = ['url', 'id', 'title', 'description', 'priority', 'status', 'created_at', 'attachments', 'answer', 'answered_at', 'answered_by']
 
 # --- NEW: This serializer is for CREATING/UPDATING a ticket ---
 class TicketCreateSerializer(serializers.ModelSerializer):
