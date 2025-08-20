@@ -213,4 +213,18 @@ class AdminVerificationSerializer(serializers.ModelSerializer):
 class TechnicalAnalysisSerializer(serializers.ModelSerializer):
     class Meta:
         model = TechnicalAnalysis
-        exclude = ['id']
+        fields = [
+            'ma_signal',
+            'osc_signal',
+            'ma_buy_count',
+            'ma_sell_count',
+            'ma_neutral_count',
+            'osc_buy_count',
+            'osc_sell_count',
+            'osc_neutral_count',
+            'summary_buy_count',
+            'summary_sell_count',
+            'summary_neutral_count',
+            'summary_signal',
+            'calculated_at'
+        ]

@@ -76,24 +76,37 @@ class Command(BaseCommand):
         else:
              osc_signals['neutral'] += 1
         
-        # --- 3. Aggregate, Determine Signal, and Save ---
+        # --- 3. Aggregate, Determine Signals, and Save ---
         summary_buy = ma_signals['buy'] + osc_signals['buy']
         summary_sell = ma_signals['sell'] + osc_signals['sell']
         summary_neutral = ma_signals['neutral'] + osc_signals['neutral']
+        
+        def get_final_signal(buy, sell, neutral):
+            if buy > sell * 2: return TechnicalAnalysis.Signal.STRONG_BUY
+            if sell > buy * 2: return TechnicalAnalysis.Signal.STRONG_SELL
+            if buy > sell: return TechnicalAnalysis.Signal.BUY
+            if sell > buy: return TechnicalAnalysis.Signal.SELL
+            return TechnicalAnalysis.Signal.NEUTRAL
 
-        final_signal = TechnicalAnalysis.Signal.NEUTRAL
-        if summary_buy > summary_sell * 2: final_signal = TechnicalAnalysis.Signal.STRONG_BUY
-        elif summary_sell > summary_buy * 2: final_signal = TechnicalAnalysis.Signal.STRONG_SELL
-        elif summary_buy > summary_sell: final_signal = TechnicalAnalysis.Signal.BUY
-        elif summary_sell > summary_buy: final_signal = TechnicalAnalysis.Signal.SELL
+        ma_final_signal = get_final_signal(ma_signals['buy'], ma_signals['sell'], ma_signals['neutral'])
+        osc_final_signal = get_final_signal(osc_signals['buy'], osc_signals['sell'], osc_signals['neutral'])
+        summary_final_signal = get_final_signal(summary_buy, summary_sell, summary_neutral)
 
         TechnicalAnalysis.objects.update_or_create(
-            id=1,
+            id=1, # We will always just have one record with the latest analysis
             defaults={
-                'ma_buy_count': ma_signals['buy'], 'ma_sell_count': ma_signals['sell'], 'ma_neutral_count': ma_signals['neutral'],
-                'osc_buy_count': osc_signals['buy'], 'osc_sell_count': osc_signals['sell'], 'osc_neutral_count': osc_signals['neutral'],
-                'summary_buy_count': summary_buy, 'summary_sell_count': summary_sell, 'summary_neutral_count': summary_neutral,
-                'summary_signal': final_signal,
+                'ma_signal': ma_final_signal,
+                'osc_signal': osc_final_signal,
+                'summary_signal': summary_final_signal,
+                'ma_buy_count': ma_signals['buy'],
+                'ma_sell_count': ma_signals['sell'],
+                'ma_neutral_count': ma_signals['neutral'],
+                'osc_buy_count': osc_signals['buy'],
+                'osc_sell_count': osc_signals['sell'],
+                'osc_neutral_count': osc_signals['neutral'],
+                'summary_buy_count': summary_buy,
+                'summary_sell_count': summary_sell,
+                'summary_neutral_count': summary_neutral,
             }
         )
-        self.stdout.write(self.style.SUCCESS(f"Successfully saved full analysis. Final signal: {final_signal}"))
+        self.stdout.write(self.style.SUCCESS(f"Successfully saved full analysis. Final signal: {summary_final_signal}"))

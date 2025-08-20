@@ -226,16 +226,18 @@ class TechnicalAnalysis(models.Model):
     ma_buy_count = models.PositiveIntegerField(default=0)
     ma_sell_count = models.PositiveIntegerField(default=0)
     ma_neutral_count = models.PositiveIntegerField(default=0)
-    
+    ma_signal = models.CharField(max_length=20, choices=Signal.choices, default=Signal.NEUTRAL)
+
     osc_buy_count = models.PositiveIntegerField(default=0)
     osc_sell_count = models.PositiveIntegerField(default=0)
     osc_neutral_count = models.PositiveIntegerField(default=0)
+    osc_signal = models.CharField(max_length=20, choices=Signal.choices, default=Signal.NEUTRAL) 
     
     summary_buy_count = models.PositiveIntegerField(default=0)
     summary_sell_count = models.PositiveIntegerField(default=0)
     summary_neutral_count = models.PositiveIntegerField(default=0)
-    
     summary_signal = models.CharField(max_length=20, choices=Signal.choices, default=Signal.NEUTRAL)
+    
     calculated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
