@@ -28,7 +28,8 @@ class CustomAPIRootView(APIView):
             "admin-bank-account": reverse("api:admin-bank-account-list", request=request),
             "ticket": reverse("api:ticket-list", request=request),
             "admin-verification": reverse("api:admin-verification-list", request=request),
-            "verification-status": reverse("api:verification-status", request=request)
+            "verification-status": reverse("api:verification-status", request=request),
+            "admin-license": reverse("api:admin-license-list", request=request),
         }
         return Response(dict(sorted(data.items())))
 

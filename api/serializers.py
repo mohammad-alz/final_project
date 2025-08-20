@@ -1,3 +1,4 @@
+from django.contrib.staticfiles.storage import staticfiles_storage
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -54,6 +55,16 @@ class LicenseSerializer(serializers.ModelSerializer):
         model = License
         fields = '__all__'
 
+class AdminLicenseSerializer(serializers.ModelSerializer):
+    # --- RENAME THIS FIELD ---
+    # This field creates the clickable link to the API detail page
+    api_url = serializers.HyperlinkedIdentityField(view_name='api:admin-license-detail')
+
+    class Meta:
+        model = License
+        # Add 'api_url' and also include the original 'url' from the model
+        fields = ['api_url', 'id', 'name', 'description', 'url', 'image', 'issue_date', 'expire_date', 'status', 'is_active']
+
 class GoldTradeSerializer(serializers.Serializer):
     quantity = serializers.IntegerField(
         min_value=1, 
@@ -88,11 +99,32 @@ class AdminBankAccountSerializer(serializers.ModelSerializer):
         # Add 'url' to the beginning of the fields list
         fields = ['url', 'id', 'bank_name', 'card_number', 'status', 'user']
 
+BANK_LOGOS = {
+    'mli': 'api/images/bank_logos/mli.png',
+    'maaaa3can': 'api/images/bank_logos/maaaa3can.png',
+    'beeeluuu': 'api/images/bank_logos/pasargad.png',
+    # Add all other bank names and their logo filenames here
+}
+
 class UserBankAccountSerializer(serializers.ModelSerializer):
+    # This new field will contain the URL to the bank's logo
+    logo_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = BankAccount
         read_only_fields = ['user', 'status']
-        fields = ['id', 'bank_name', 'card_number', 'status']
+        # Add 'logo_url' to the fields list
+        fields = ['id', 'bank_name', 'card_number', 'status', 'logo_url']
+
+    def get_logo_url(self, obj):
+        # Look up the logo file from our dictionary
+        logo_path = BANK_LOGOS.get(obj.bank_name)
+        if logo_path:
+            # Return the full URL to the static file
+            return self.context['request'].build_absolute_uri(
+                staticfiles_storage.url(logo_path)
+            )
+        return None
 
 class EmptySerializer(serializers.Serializer):
     pass
@@ -177,3 +209,4 @@ class AdminVerificationSerializer(serializers.ModelSerializer):
         # Add 'url' to the fields list
         fields = ['url', 'id', 'user_email', 'status', 'image', 'admin_notes', 'submitted_at']
         read_only_fields = ['image', 'submitted_at', 'user_email']
+

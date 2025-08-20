@@ -30,7 +30,7 @@ from .serializers import (
     EmptySerializer, RialTransactionActionSerializer, TicketCreateSerializer,
     TicketDetailSerializer, TicketAnswerSerializer, UserVerificationSerializer,
     AdminVerificationSerializer, UserVerificationSubmitSerializer,
-    AdminRejectionSerializer,
+    AdminRejectionSerializer, AdminLicenseSerializer,
 )
 
 from .permissions import IsVerifiedUser
@@ -73,6 +73,17 @@ class LicenseViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = License.objects.filter(status='ACTIVE')
     serializer_class = LicenseSerializer
     permission_classes = [permissions.AllowAny]
+
+class AdminLicenseViewSet(viewsets.ModelViewSet):
+    """
+    An endpoint for admins to create, view, update, and delete licenses.
+    """
+    serializer_class = AdminLicenseSerializer
+    permission_classes = [permissions.IsAdminUser]
+    # Admins should be able to see all licenses, including inactive ones
+    queryset = License.all_objects.all()
+    # Required for the image upload
+    parser_classes = [MultiPartParser, FormParser]
 
 class LatestPriceView(generics.GenericAPIView):
     """

@@ -11,6 +11,7 @@ from .views import (
     LogoutView, PaymentWebhookView, PriceChartView,MyTokenObtainPairView,
     LatestPriceView, UserBankAccountViewSet, AdminBankAccountViewSet,
     TicketViewSet, AdminVerificationViewSet, UserVerificationView,
+    AdminLicenseViewSet,
 )
 
 router = DefaultRouter()
@@ -26,6 +27,7 @@ router.register(r'my-bank-accounts', UserBankAccountViewSet, basename='my-bank-a
 router.register(r'admin/bank-accounts', AdminBankAccountViewSet, basename='admin-bank-account')
 router.register(r'tickets', TicketViewSet, basename='ticket')
 router.register(r'admin/verifications', AdminVerificationViewSet, basename='admin-verification')
+router.register(r'admin/licenses', AdminLicenseViewSet, basename='admin-license')
 
 urlpatterns = [
     path('auth/logout/', LogoutView.as_view(), name='auth_logout'),
