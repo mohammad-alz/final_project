@@ -63,7 +63,7 @@ def calculate_and_save_analysis(timeframe, price_df):
             'summary_buy_count': summary_buy, 'summary_sell_count': summary_sell, 'summary_neutral_count': summary_neutral,
         }
     )
-    return summary_final_signal, None
+    return summary_final_signal
 
 class Command(BaseCommand):
     help = 'Calculates and saves technical analysis for multiple timeframes.'
