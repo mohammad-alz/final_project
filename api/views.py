@@ -544,8 +544,17 @@ class TechnicalAnalysisView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, *args, **kwargs):
-        latest_analysis = TechnicalAnalysis.objects.first()
-        if latest_analysis:
-            serializer = TechnicalAnalysisSerializer(latest_analysis)
+        # Get the timeframe from the URL, default to '1D' (daily)
+        timeframe = request.query_params.get('timeframe', '1D')
+        
+        # Get the most recently calculated analysis for the requested timeframe
+        analysis_object = TechnicalAnalysis.objects.filter(timeframe=timeframe).first()
+        
+        if analysis_object:
+            serializer = TechnicalAnalysisSerializer(analysis_object)
             return Response(serializer.data)
-        return Response({"error": "Analysis data not available yet."}, status=status.HTTP_404_NOT_FOUND)
+        
+        return Response(
+            {"error": f"Analysis data for timeframe '{timeframe}' is not available yet."}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
