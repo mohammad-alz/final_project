@@ -162,12 +162,23 @@ class Ticket(models.Model):
         IN_PROGRESS = 'IN_PROGRESS', 'In Progress'
         CLOSED = 'CLOSED', 'Closed'
 
-    user =models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tickets')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tickets')
     title = models.CharField(max_length=255)
     description = models.TextField()
     priority = models.CharField(max_length=10, choices=Priority.choices, default=Priority.LOW)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    answer = models.TextField(blank=True, null=True)
+    answered_at = models.DateTimeField(blank=True, null=True)
+    # The admin who answered the ticket
+    answered_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='answered_tickets',
+        blank=True,
+        null=True
+    )
 
     def __str__(self):
         return self.title

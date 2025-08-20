@@ -27,7 +27,8 @@ from .serializers import (
     UserSerializer, GoldTransactionSerializer, RialTransactionSerializer,
     PriceSerializer, FAQSerializer, LicenseSerializer,GoldTradeSerializer,
     MyTokenObtainPairSerializer, BankAccountSerializer, EmptySerializer,
-    RialTransactionActionSerializer, TicketCreateSerializer, TicketDetailSerializer
+    RialTransactionActionSerializer, TicketCreateSerializer, TicketDetailSerializer,
+    TicketAnswerSerializer,
 )
 
 # --- User and Public Views ---
@@ -392,3 +393,38 @@ class TicketViewSet(viewsets.ModelViewSet):
             return TicketCreateSerializer
         # For 'list', 'retrieve', etc., use the detail serializer
         return TicketDetailSerializer
+    
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    def answer(self, request, pk=None):
+        """
+        Allows an admin to post an answer to a ticket.
+        """
+        ticket = self.get_object()
+        serializer = TicketAnswerSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            ticket.answer = serializer.validated_data['answer']
+            ticket.answered_by = request.user
+            ticket.answered_at = timezone.now()
+            ticket.status = Ticket.Status.CLOSED # Optionally close the ticket
+            ticket.save()
+            # Return the full, updated ticket details
+            return Response(TicketDetailSerializer(ticket).data)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    def destroy(self, request, *args, **kwargs):
+        """
+        Allows a user to permanently delete their own ticket, but only if the
+        status is 'OPEN'.
+        """
+        ticket = self.get_object()
+        
+        if ticket.status == Ticket.Status.OPEN:
+            # This calls the original method to permanently delete the object
+            return super().destroy(request, *args, **kwargs)
+        else:
+            return Response(
+                {'detail': 'You can only delete tickets that are still open.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
