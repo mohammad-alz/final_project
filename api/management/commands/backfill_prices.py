@@ -5,41 +5,42 @@ from django.utils import timezone
 from api.models import Price
 
 class Command(BaseCommand):
-    help = 'Backfills historical price data from the earliest existing record.'
+    help = 'Backfills historical price data, leading up to the earliest existing record.'
 
     def handle(self, *args, **kwargs):
-        # 1. Find the oldest price record in the database
-        oldest_price_record = Price.objects.order_by('timestamp').first()
+        oldest_record = Price.objects.order_by('timestamp').first()
 
-        if not oldest_price_record:
-            self.stdout.write(self.style.ERROR("Database has no price data. Cannot backfill. Please run 'update_gold_price' first."))
+        if not oldest_record:
+            self.stdout.write(self.style.ERROR("No existing price data found. Cannot backfill."))
             return
 
-        start_time = oldest_price_record.timestamp
-        current_price = oldest_price_record.price
-        
-        self.stdout.write(f"Oldest price found at {start_time}. Starting backfill from this point.")
-        
-        price_list_to_create = []
-        num_days_to_backfill = 200
-        points_per_day = 24 * 30 # One point every 2 minutes
-        total_points = num_days_to_backfill * points_per_day
+        self.stdout.write("Starting to backfill historical price data...")
 
-        # 2. Loop backwards in time from the oldest record
-        for i in range(1, total_points + 1):
-            timestamp = start_time - timedelta(minutes=i * 2)
-            
-            # Create a small random fluctuation
-            change = random.uniform(-0.0001, 0.0001) # Smaller, more realistic fluctuation
-            current_price = float(current_price) * (1 + change)
-            
-            price_list_to_create.append(
-                Price(timestamp=timestamp, price=int(current_price))
+        price_history = []
+        # The exact time and price of your first real record
+        end_timestamp = oldest_record.timestamp
+        # We start our fake history based on the price of your first real record
+        current_price = float(oldest_record.price)
+
+        # How far back to generate data
+        num_days_to_generate = 200
+        start_timestamp = end_timestamp - timedelta(days=num_days_to_generate)
+        
+        # We go forward in time from 200 days ago up to your first record
+        current_timestamp = start_timestamp
+        while current_timestamp < end_timestamp:
+            price_history.append(
+                Price(timestamp=current_timestamp, price=int(current_price))
             )
+            # Fluctuate the price for the next data point
+            change = random.uniform(-0.0001, 0.0001)
+            current_price = current_price * (1 + change)
+            # Move forward 2 minutes in time
+            current_timestamp += timedelta(minutes=2)
 
-        # 3. Save all the new historical data in one efficient query
-        Price.objects.bulk_create(price_list_to_create)
+        # Save all new records in one go
+        Price.objects.bulk_create(price_history)
 
         self.stdout.write(self.style.SUCCESS(
-            f"Successfully created {len(price_list_to_create)} new historical price records."
+            f"Successfully created {len(price_history)} historical price records."
         ))
