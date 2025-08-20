@@ -80,18 +80,18 @@ class Command(BaseCommand):
         df['price'] = pd.to_numeric(df['price'])
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         df.set_index('timestamp', inplace=True)
-        df['close'] = df['price'] # Use 'close' as the standard name
+        df['close'] = df['price']
 
         # --- Calculate for Daily ('1D') timeframe ---
-        # Resample high-frequency data into 1-hour intervals for daily analysis
-        daily_df = df.resample('H').last().dropna()
+        # Get data from the last 24 hours, resampled hourly
+        daily_df = df[df.index > (df.index.max() - pd.Timedelta(days=1))].resample('H').last().dropna()
         signal, error = calculate_and_save_analysis('1D', daily_df)
         if error: self.stdout.write(self.style.WARNING(error))
         else: self.stdout.write(self.style.SUCCESS(f"Daily analysis saved with signal: {signal}"))
 
         # --- Calculate for Weekly ('1W') timeframe ---
-        # Resample high-frequency data into daily intervals for weekly analysis
-        weekly_df = df.resample('D').last().dropna()
+        # Get data from the last 7 days, also resampled hourly
+        weekly_df = df[df.index > (df.index.max() - pd.Timedelta(days=7))].resample('H').last().dropna()
         signal, error = calculate_and_save_analysis('1W', weekly_df)
         if error: self.stdout.write(self.style.WARNING(error))
         else: self.stdout.write(self.style.SUCCESS(f"Weekly analysis saved with signal: {signal}"))
