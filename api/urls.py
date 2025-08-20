@@ -10,7 +10,7 @@ from .views import (
     RialWalletViewSet, GoldTransactionHistoryViewSet, RialTransactionHistoryViewSet, 
     LogoutView, PaymentWebhookView, PriceChartView,MyTokenObtainPairView,
     LatestPriceView, UserBankAccountViewSet, AdminBankAccountViewSet,
-    TicketViewSet,
+    TicketViewSet, AdminVerificationViewSet, UserVerificationView,
 )
 
 router = DefaultRouter()
@@ -25,6 +25,7 @@ router.register(r'history/rial', RialTransactionHistoryViewSet, basename='rial-h
 router.register(r'my-bank-accounts', UserBankAccountViewSet, basename='my-bank-account')
 router.register(r'admin/bank-accounts', AdminBankAccountViewSet, basename='admin-bank-account')
 router.register(r'tickets', TicketViewSet, basename='ticket')
+router.register(r'admin/verifications', AdminVerificationViewSet, basename='admin-verification')
 
 urlpatterns = [
     path('auth/logout/', LogoutView.as_view(), name='auth_logout'),
@@ -33,5 +34,6 @@ urlpatterns = [
     path('prices/chart/', PriceChartView.as_view(), name='price-chart'),
     path('auth/token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('verification/status', UserVerificationView.as_view(), name='verification-status'),
     path('', include(router.urls)),
 ]

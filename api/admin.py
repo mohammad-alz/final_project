@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import (
     User, GoldWallet, RialWallet, GoldTransaction,
     RialTransaction, Price, FAQ, License, BankAccount,
-    Ticket, TicketAttachment
+    Ticket, TicketAttachment, UserVerification,
 )
 
 class UserAdmin(admin.ModelAdmin):
@@ -67,6 +67,11 @@ class TicketAttachmentAdmin(admin.ModelAdmin):
     search_fields = ('ticket__user__username', 'ticket__id')
     readonly_fields = ('ticket',)
 
+class UserVerificationAdmin(admin.ModelAdmin):
+    list_display = ('user', 'status', 'image', 'submitted_at')
+    list_filter = ('status',)
+    readonly_fields = ('image', 'user')
+
 admin.site.register(User, UserAdmin)
 admin.site.register(GoldWallet, GoldWalletAdmin)
 admin.site.register(RialWallet, RialWalletAdmin)
@@ -78,3 +83,4 @@ admin.site.register(License, LicenseAdmin)
 admin.site.register(BankAccount, BankAccountAdmin)
 admin.site.register(Ticket, TicketAdmin)
 admin.site.register(TicketAttachment, TicketAttachmentAdmin)
+admin.site.register(UserVerification, UserVerificationAdmin)

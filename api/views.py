@@ -21,15 +21,19 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import (
     User, GoldTransaction, RialTransaction, Price, FAQ, License,
-    GoldWallet, RialWallet, BankAccount,Ticket
+    GoldWallet, RialWallet, BankAccount,Ticket, UserVerification,
 )
 from .serializers import (
     UserSerializer, GoldTransactionSerializer, RialTransactionSerializer,
     PriceSerializer, FAQSerializer, LicenseSerializer,GoldTradeSerializer,
     MyTokenObtainPairSerializer, UserBankAccountSerializer, AdminBankAccountSerializer,
     EmptySerializer, RialTransactionActionSerializer, TicketCreateSerializer,
-    TicketDetailSerializer, TicketAnswerSerializer,
+    TicketDetailSerializer, TicketAnswerSerializer, UserVerificationSerializer,
+    AdminVerificationSerializer, UserVerificationSubmitSerializer,
+    AdminRejectionSerializer,
 )
+
+from .permissions import IsVerifiedUser
 
 # --- User and Public Views ---
 
@@ -90,7 +94,7 @@ class LatestPriceView(generics.GenericAPIView):
 # --- Trading and Wallet Logic ---
 
 class GoldTradeViewSet(mixins.ListModelMixin,viewsets.GenericViewSet):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsVerifiedUser]
     # Connect the new serializer to the view
     serializer_class = GoldTradeSerializer
     queryset = GoldTransaction.objects.none()
@@ -141,7 +145,7 @@ class GoldTradeViewSet(mixins.ListModelMixin,viewsets.GenericViewSet):
         return self._trade(request, 'SELL')
 
 class RialWalletViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated, IsVerifiedUser]
     queryset = RialTransaction.objects.none()
 
     def get_serializer_class(self):
@@ -439,3 +443,87 @@ class TicketViewSet(viewsets.ModelViewSet):
         
         # If the status is OPEN, proceed with the normal update logic
         return super().update(request, *args, **kwargs)
+    
+class UserVerificationView(generics.GenericAPIView):
+    """
+    GET: Shows the user's latest verification status.
+    POST: Creates a new verification submission with a file upload.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+    
+    # This tells the view (and the browsable API) which serializer to use for POST
+    serializer_class = UserVerificationSubmitSerializer
+
+    def get(self, request, *args, **kwargs):
+        """Returns the status of the LATEST verification attempt."""
+        latest_verification = UserVerification.objects.filter(user=request.user).last()
+        
+        if not latest_verification:
+            return Response({'status': UserVerification.Status.NOT_SUBMITTED})
+            
+        # For displaying the status, we still use the detailed serializer
+        serializer = UserVerificationSerializer(latest_verification)
+        return Response(serializer.data)
+
+    def post(self, request, *args, **kwargs):
+        """Creates a NEW verification submission."""
+        latest_verification = UserVerification.objects.filter(user=request.user).last()
+        
+        if latest_verification and latest_verification.status in [UserVerification.Status.PENDING, UserVerification.Status.VERIFIED]:
+            return Response(
+                {'detail': 'You cannot submit a new verification while one is pending or already verified.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Use the get_serializer() method provided by GenericAPIView
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Create a new verification object
+        serializer.save(
+            user=request.user, 
+            status=UserVerification.Status.PENDING,
+            admin_notes=None
+        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+# --- View for ADMINS to manage all submissions ---
+class AdminVerificationViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Allows admins to list, review, and approve/reject submissions.
+    """
+    permission_classes = [permissions.IsAdminUser]
+    queryset = UserVerification.objects.filter(status=UserVerification.Status.PENDING)
+
+    def get_serializer_class(self):
+        if self.action == 'reject':
+            return AdminRejectionSerializer
+        # --- ADD THIS CHECK ---
+        # For the 'verify' action, we don't need any input fields.
+        if self.action == 'verify':
+            return EmptySerializer
+        # For all other actions (like list/retrieve), use the main serializer.
+        return AdminVerificationSerializer
+
+    @action(detail=True, methods=['post'])
+    def verify(self, request, pk=None):
+        """Marks a submission as verified."""
+        verification = self.get_object()
+        verification.status = UserVerification.Status.VERIFIED
+        verification.admin_notes = "Your document has been approved."
+        verification.save()
+        return Response({'status': 'Verification approved'})
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Marks a submission as rejected and adds a note."""
+        verification = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        verification.status = UserVerification.Status.REJECTED
+        verification.admin_notes = serializer.validated_data['admin_notes']
+        verification.save()
+        return Response({'status': 'Verification rejected'})

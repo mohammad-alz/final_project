@@ -4,6 +4,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import (
     User, GoldWallet, RialWallet, GoldTransaction, RialTransaction,
     Price, FAQ, License, BankAccount, Ticket, TicketAttachment,
+    UserVerification,
 )
 
 class GoldWalletSerializer(serializers.ModelSerializer):
@@ -149,4 +150,30 @@ class TicketCreateSerializer(serializers.ModelSerializer):
         return ticket
     
 
+# This serializer is now just for submitting an image
+class UserVerificationSubmitSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserVerification
+        fields = ['image']
+
+# This serializer is for displaying the status of the latest submission
+class UserVerificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserVerification
+        fields = ['status', 'image', 'admin_notes', 'submitted_at']
+
+# Serializer for the admin to update the status
+class AdminRejectionSerializer(serializers.Serializer):
+    admin_notes = serializers.CharField(style={'base_template': 'textarea.html'})
+
+# --- UPDATE the AdminVerificationSerializer ---
+class AdminVerificationSerializer(serializers.ModelSerializer):
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    # This field creates the clickable link to the detail page
+    url = serializers.HyperlinkedIdentityField(view_name='api:admin-verification-detail')
     
+    class Meta:
+        model = UserVerification
+        # Add 'url' to the fields list
+        fields = ['url', 'id', 'user_email', 'status', 'image', 'admin_notes', 'submitted_at']
+        read_only_fields = ['image', 'submitted_at', 'user_email']

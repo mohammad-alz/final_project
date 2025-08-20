@@ -190,3 +190,26 @@ class TicketAttachment(models.Model):
 
     def __str__(self):
         return self.file.name
+
+class UserVerification(models.Model):
+    class Status(models.TextChoices):
+        NOT_SUBMITTED = 'NOT_SUBMITTED', 'Not Submitted'
+        PENDING = 'PENDING', 'Pending'
+        VERIFIED = 'VERIFIED', 'Verified'
+        REJECTED = 'REJECTED', 'Rejected'
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='verifications' # Plural name
+    )
+    
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.NOT_SUBMITTED)
+    # Stores the verification image (e.g., National ID)
+    image = models.ImageField(upload_to='verifications/%Y/%m/%d/')
+    # Notes from the admin if the submission is rejected
+    admin_notes = models.TextField(blank=True, null=True)
+    submitted_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.status}"
