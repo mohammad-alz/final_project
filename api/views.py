@@ -545,16 +545,23 @@ class TechnicalAnalysisView(APIView):
 
     def get(self, request, *args, **kwargs):
         # Get the timeframe from the URL, default to '1D' (daily)
-        timeframe = request.query_params.get('timeframe', '1D')
+        user_input = request.query_params.get('timeframe', '1d').lower()
         
-        # Get the most recently calculated analysis for the requested timeframe
-        analysis_object = TechnicalAnalysis.objects.filter(timeframe=timeframe).first()
+        # Map the user's input to the timeframe stored in the database ('1D' or '1W')
+        if user_input in ['weekly', '1w', '7d']:
+            db_timeframe = '1W'
+        else: # Default to daily
+            db_timeframe = '1D'
+            
+        # Get the analysis for the mapped timeframe
+        latest_analysis = TechnicalAnalysis.objects.filter(timeframe=db_timeframe).first()
+        # --- END OF FIX ---
         
-        if analysis_object:
-            serializer = TechnicalAnalysisSerializer(analysis_object)
+        if latest_analysis:
+            serializer = TechnicalAnalysisSerializer(latest_analysis)
             return Response(serializer.data)
         
         return Response(
-            {"error": f"Analysis data for timeframe '{timeframe}' is not available yet."}, 
+            {"error": f"Analysis data for timeframe '{db_timeframe}' is not available yet."}, 
             status=status.HTTP_404_NOT_FOUND
         )
