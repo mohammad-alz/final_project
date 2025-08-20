@@ -223,8 +223,8 @@ class TechnicalAnalysis(models.Model):
         SELL = 'SELL', 'Sell'
         STRONG_SELL = 'STRONG_SELL', 'Strong Sell'
 
-    timeframe = models.CharField(max_length=10, unique=True)
-    
+    timeframe = models.CharField(max_length=10, unique=True, blank=True)
+
     ma_buy_count = models.PositiveIntegerField(default=0)
     ma_sell_count = models.PositiveIntegerField(default=0)
     ma_neutral_count = models.PositiveIntegerField(default=0)
