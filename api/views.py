@@ -26,9 +26,9 @@ from .models import (
 from .serializers import (
     UserSerializer, GoldTransactionSerializer, RialTransactionSerializer,
     PriceSerializer, FAQSerializer, LicenseSerializer,GoldTradeSerializer,
-    MyTokenObtainPairSerializer, BankAccountSerializer, EmptySerializer,
-    RialTransactionActionSerializer, TicketCreateSerializer, TicketDetailSerializer,
-    TicketAnswerSerializer,
+    MyTokenObtainPairSerializer, UserBankAccountSerializer, AdminBankAccountSerializer,
+    EmptySerializer, RialTransactionActionSerializer, TicketCreateSerializer,
+    TicketDetailSerializer, TicketAnswerSerializer,
 )
 
 # --- User and Public Views ---
@@ -327,18 +327,14 @@ class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
 class UserBankAccountViewSet(viewsets.ModelViewSet):
-    """
-    Allows users to add, view, and delete their own bank accounts.
-    """
-    serializer_class = BankAccountSerializer
+    # Use the new, simpler serializer that has no URL field
+    serializer_class = UserBankAccountSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # A user can only ever see their own bank accounts.
         return BankAccount.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        # When creating a new bank account, automatically assign it to the logged-in user.
         serializer.save(user=self.request.user)
 
 # --- View for ADMINS to manage all accounts ---
@@ -346,8 +342,8 @@ class AdminBankAccountViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Allows admins to view all bank accounts and verify them.
     """
-    serializer_class = BankAccountSerializer
-    permission_classes = [permissions.IsAdminUser] # Only admins can access
+    serializer_class = AdminBankAccountSerializer
+    permission_classes = [permissions.IsAdminUser]
     queryset = BankAccount.objects.all()
 
     def get_serializer_class(self):
@@ -428,3 +424,18 @@ class TicketViewSet(viewsets.ModelViewSet):
                 {'detail': 'You can only delete tickets that are still open.'},
                 status=status.HTTP_403_FORBIDDEN
             )
+        
+    def update(self, request, *args, **kwargs):
+        """
+        Allows a user to edit a ticket only if its status is 'OPEN'.
+        """
+        ticket = self.get_object()
+        
+        if ticket.status != Ticket.Status.OPEN:
+            return Response(
+                {'detail': 'You can only edit tickets that are still open.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # If the status is OPEN, proceed with the normal update logic
+        return super().update(request, *args, **kwargs)

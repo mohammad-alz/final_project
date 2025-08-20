@@ -74,7 +74,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
     
 
-class BankAccountSerializer(serializers.ModelSerializer):
+class AdminBankAccountSerializer(serializers.ModelSerializer):
     # This new field creates the clickable link
     url = serializers.HyperlinkedIdentityField(
         view_name='api:admin-bank-account-detail',
@@ -87,12 +87,18 @@ class BankAccountSerializer(serializers.ModelSerializer):
         # Add 'url' to the beginning of the fields list
         fields = ['url', 'id', 'bank_name', 'card_number', 'status', 'user']
 
+class UserBankAccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BankAccount
+        read_only_fields = ['user', 'status']
+        fields = ['id', 'bank_name', 'card_number', 'status']
+
 class EmptySerializer(serializers.Serializer):
     pass
 
 class RialTransactionSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField()
-    bank_account = BankAccountSerializer(read_only=True)
+    bank_account = UserBankAccountSerializer(read_only=True)
     class Meta:
         model = RialTransaction
         fields = '__all__'
@@ -117,7 +123,7 @@ class TicketDetailSerializer(serializers.ModelSerializer):
     attachments = TicketAttachmentSerializer(many=True, read_only=True)
     answered_by = serializers.StringRelatedField(read_only=True)
     url = serializers.HyperlinkedIdentityField(view_name='api:ticket-detail')
-    
+
     class Meta:
         model = Ticket
         fields = ['url', 'id', 'title', 'description', 'priority', 'status', 'created_at', 'attachments', 'answer', 'answered_at', 'answered_by']
