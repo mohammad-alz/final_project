@@ -3,6 +3,7 @@ from .models import (
     User, GoldWallet, RialWallet, GoldTransaction,
     RialTransaction, Price, FAQ, License, BankAccount,
     Ticket, TicketAttachment, UserVerification,
+    TechnicalAnalysis,
 )
 
 class UserAdmin(admin.ModelAdmin):
@@ -72,6 +73,23 @@ class UserVerificationAdmin(admin.ModelAdmin):
     list_filter = ('status',)
     readonly_fields = ('image', 'user')
 
+class TechnicalAnalysisAdmin(admin.ModelAdmin):
+    list_display = ('summary_signal', 'calculated_at')
+    list_filter = ('summary_signal',)
+    readonly_fields = (
+        'ma_buy_count',
+        'ma_sell_count',
+        'ma_neutral_count',
+        'osc_buy_count',
+        'osc_sell_count',
+        'osc_neutral_count',
+        'summary_buy_count',
+        'summary_sell_count',
+        'summary_neutral_count',
+        'summary_signal',
+        'calculated_at')
+    
+
 admin.site.register(User, UserAdmin)
 admin.site.register(GoldWallet, GoldWalletAdmin)
 admin.site.register(RialWallet, RialWalletAdmin)
@@ -84,3 +102,4 @@ admin.site.register(BankAccount, BankAccountAdmin)
 admin.site.register(Ticket, TicketAdmin)
 admin.site.register(TicketAttachment, TicketAttachmentAdmin)
 admin.site.register(UserVerification, UserVerificationAdmin)
+admin.site.register(TechnicalAnalysis, TechnicalAnalysisAdmin)
