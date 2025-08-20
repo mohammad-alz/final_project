@@ -22,6 +22,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import (
     User, GoldTransaction, RialTransaction, Price, FAQ, License,
     GoldWallet, RialWallet, BankAccount,Ticket, UserVerification,
+    TechnicalAnalysis,
 )
 from .serializers import (
     UserSerializer, GoldTransactionSerializer, RialTransactionSerializer,
@@ -30,7 +31,7 @@ from .serializers import (
     EmptySerializer, RialTransactionActionSerializer, TicketCreateSerializer,
     TicketDetailSerializer, TicketAnswerSerializer, UserVerificationSerializer,
     AdminVerificationSerializer, UserVerificationSubmitSerializer,
-    AdminRejectionSerializer, AdminLicenseSerializer,
+    AdminRejectionSerializer, AdminLicenseSerializer, TechnicalAnalysisSerializer
 )
 
 from .permissions import IsVerifiedUser
@@ -538,3 +539,13 @@ class AdminVerificationViewSet(viewsets.ReadOnlyModelViewSet):
         verification.admin_notes = serializer.validated_data['admin_notes']
         verification.save()
         return Response({'status': 'Verification rejected'})
+    
+class TechnicalAnalysisView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        latest_analysis = TechnicalAnalysis.objects.first()
+        if latest_analysis:
+            serializer = TechnicalAnalysisSerializer(latest_analysis)
+            return Response(serializer.data)
+        return Response({"error": "Analysis data not available yet."}, status=status.HTTP_404_NOT_FOUND)

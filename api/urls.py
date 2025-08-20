@@ -11,7 +11,7 @@ from .views import (
     LogoutView, PaymentWebhookView, PriceChartView,MyTokenObtainPairView,
     LatestPriceView, UserBankAccountViewSet, AdminBankAccountViewSet,
     TicketViewSet, AdminVerificationViewSet, UserVerificationView,
-    AdminLicenseViewSet,
+    AdminLicenseViewSet, TechnicalAnalysisView,
 )
 
 router = DefaultRouter()
@@ -34,6 +34,7 @@ urlpatterns = [
     path('payments/webhook/', PaymentWebhookView.as_view(), name='payment-webhook'),
     path('prices/latest/', LatestPriceView.as_view(), name='latest-price'),
     path('prices/chart/', PriceChartView.as_view(), name='price-chart'),
+    path('prices/analysis/', TechnicalAnalysisView.as_view(), name='price-analysis'),
     path('auth/token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('verification/status', UserVerificationView.as_view(), name='verification-status'),

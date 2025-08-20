@@ -5,7 +5,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import (
     User, GoldWallet, RialWallet, GoldTransaction, RialTransaction,
     Price, FAQ, License, BankAccount, Ticket, TicketAttachment,
-    UserVerification,
+    UserVerification, TechnicalAnalysis,
 )
 
 class GoldWalletSerializer(serializers.ModelSerializer):
@@ -210,3 +210,7 @@ class AdminVerificationSerializer(serializers.ModelSerializer):
         fields = ['url', 'id', 'user_email', 'status', 'image', 'admin_notes', 'submitted_at']
         read_only_fields = ['image', 'submitted_at', 'user_email']
 
+class TechnicalAnalysisSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TechnicalAnalysis
+        exclude = ['id']

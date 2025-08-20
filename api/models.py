@@ -213,3 +213,30 @@ class UserVerification(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.status}"
+    
+
+class TechnicalAnalysis(models.Model):
+    class Signal(models.TextChoices):
+        STRONG_BUY = 'STRONG_BUY', 'Strong Buy'
+        BUY = 'BUY', 'Buy'
+        NEUTRAL = 'NEUTRAL', 'Neutral'
+        SELL = 'SELL', 'Sell'
+        STRONG_SELL = 'STRONG_SELL', 'Strong Sell'
+
+    ma_buy_count = models.PositiveIntegerField(default=0)
+    ma_sell_count = models.PositiveIntegerField(default=0)
+    ma_neutral_count = models.PositiveIntegerField(default=0)
+    
+    osc_buy_count = models.PositiveIntegerField(default=0)
+    osc_sell_count = models.PositiveIntegerField(default=0)
+    osc_neutral_count = models.PositiveIntegerField(default=0)
+    
+    summary_buy_count = models.PositiveIntegerField(default=0)
+    summary_sell_count = models.PositiveIntegerField(default=0)
+    summary_neutral_count = models.PositiveIntegerField(default=0)
+    
+    summary_signal = models.CharField(max_length=20, choices=Signal.choices, default=Signal.NEUTRAL)
+    calculated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Analysis at {self.calculated_at}"

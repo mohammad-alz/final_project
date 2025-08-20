@@ -24,6 +24,7 @@ class CustomAPIRootView(APIView):
             "logout": reverse("api:auth_logout", request=request),
             "price-chart": reverse("api:price-chart", request=request),
             "latest-price": reverse("api:latest-price", request=request),
+            "price-analysis": reverse("api:price-analysis", request=request),
             "my-bank-account": reverse("api:my-bank-account-list", request=request),
             "admin-bank-account": reverse("api:admin-bank-account-list", request=request),
             "ticket": reverse("api:ticket-list", request=request),
