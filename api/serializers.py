@@ -8,6 +8,39 @@ from .models import (
     UserVerification, TechnicalAnalysis,
 )
 
+class UserCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        # List all fields required for a new user
+        fields = [
+            'username',
+            'email',
+            'phone_number',
+            'password',
+            'first_name',
+            'last_name',
+            'national_id',
+            'birth_date'
+        ]
+        extra_kwargs = {'password': {'write_only': True}}
+    
+    def create(self, validated_data):
+        # This logic correctly hashes the password
+        password = validated_data.pop('password')
+        user = User(**validated_data)
+        user.set_password(password)
+        user.save()
+        return user
+
+# Your existing UserSerializer for displaying data is still needed
+
+
+class UserProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        # List only the fields you want the user to be able to change
+        fields = ['first_name', 'last_name', 'birth_date', 'email', 'phone_number']
+
 class GoldWalletSerializer(serializers.ModelSerializer):
     class Meta:
         model = GoldWallet
@@ -19,19 +52,13 @@ class RialWalletSerializer(serializers.ModelSerializer):
         fields = ['user', 'balance'] # Shows balance in whole Rials
 
 class UserSerializer(serializers.ModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name='api:user-detail')
     gold_wallet = GoldWalletSerializer(read_only=True)
     rial_wallet = RialWalletSerializer(read_only=True)
     class Meta:
         model = User
-        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'phone_number', 'birth_date', 'national_id', 'gold_wallet', 'rial_wallet', 'password']
-        extra_kwargs = {'password': {'write_only': True}}
-
-    def create(self, validated_data):
-        password = validated_data.pop('password')
-        user = User(**validated_data)
-        user.set_password(password)
-        user.save()
-        return user
+        # Notice this does NOT include the password
+        fields = ['url', 'id', 'email', 'phone_number', 'first_name', 'last_name', 'birth_date', 'national_id', 'gold_wallet', 'rial_wallet']
 
 class PriceSerializer(serializers.ModelSerializer):
     class Meta:

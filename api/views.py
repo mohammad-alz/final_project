@@ -31,7 +31,8 @@ from .serializers import (
     EmptySerializer, RialTransactionActionSerializer, TicketCreateSerializer,
     TicketDetailSerializer, TicketAnswerSerializer, UserVerificationSerializer,
     AdminVerificationSerializer, UserVerificationSubmitSerializer,
-    AdminRejectionSerializer, AdminLicenseSerializer, TechnicalAnalysisSerializer
+    AdminRejectionSerializer, AdminLicenseSerializer, TechnicalAnalysisSerializer,
+    UserCreateSerializer
 )
 
 from .permissions import IsVerifiedUser
@@ -39,31 +40,38 @@ from .permissions import IsVerifiedUser
 # --- User and Public Views ---
 
 class UserViewSet(viewsets.ModelViewSet):
+    """
+    Handles user creation (registration) and profile viewing/updating.
+    """
     queryset = User.objects.all()
-    serializer_class = UserSerializer
-
-    def get_permissions(self):
-        if self.action == 'create':
-            self.permission_classes = [permissions.AllowAny]
-        else:
-            self.permission_classes = [permissions.IsAuthenticated]
-        return super().get_permissions()
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return User.objects.filter(pk=self.request.user.pk) if self.request.user.is_authenticated else User.objects.none()
+        # Users can only see/edit their own profile
+        return self.queryset.filter(pk=self.request.user.pk)
 
-    def get_object(self):
-        return self.request.user
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        try:
-            send_mail('Welcome!', f'Hello {user.first_name},\n\nThank you for registering.', settings.DEFAULT_FROM_EMAIL, [user.email])
-        except Exception as e:
-            print(f"Failed to send welcome email: {e}")
-        return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+    def get_permissions(self):
+        # The 'create' action (registration) is public
+        if self.action == 'create':
+            self.permission_classes = [permissions.AllowAny]
+        return super().get_permissions()
+        
+    def get_serializer_class(self):
+        # For the 'create' action, use the new registration serializer
+        if self.action == 'create':
+            return UserCreateSerializer
+        # For all other actions (GET, PUT, PATCH), use the display serializer
+        return UserSerializer
+    
+    def destroy(self, request, *args, **kwargs):
+        """
+        Disables the DELETE method for this viewset.
+        """
+        return Response(
+            {'detail': 'Account deletion is not allowed.'}, 
+            status=status.HTTP_405_METHOD_NOT_ALLOWED
+        )
+        
 
 class FAQViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = FAQ.objects.filter(is_active=True).order_by('sort_order')
