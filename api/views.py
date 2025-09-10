@@ -201,7 +201,8 @@ class RialWalletViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             status='PENDING',
             bank_account=data['bank_account']
         )
-        return Response({'message': 'Deposit request received', 'transaction': RialTransactionSerializer(tx).data}, status=status.HTTP_202_ACCEPTED)
+        response_serializer = RialTransactionSerializer(tx, context={'request': request})
+        return Response({'message': 'Deposit request received', 'transaction': response_serializer.data}, status=status.HTTP_202_ACCEPTED)
 
     @action(detail=False, methods=['post'])
     def withdraw(self, request):
@@ -224,7 +225,8 @@ class RialWalletViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 status='PENDING',
                 bank_account=data['bank_account']
             )
-        return Response({'message': 'Withdrawal request received', 'transaction': RialTransactionSerializer(tx).data}, status=status.HTTP_202_ACCEPTED)
+        response_serializer = RialTransactionSerializer(tx, context={'request': request})
+        return Response({'message': 'Withdrawal request received', 'transaction': response_serializer.data}, status=status.HTTP_202_ACCEPTED)
 
 
 # --- Transaction History ---
