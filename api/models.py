@@ -244,3 +244,24 @@ class TechnicalAnalysis(models.Model):
 
     def __str__(self):
         return f"Analysis at {self.calculated_at}"
+    
+
+class PricePrediction(models.Model):
+    class Signal(models.TextChoices):
+        BUY = 'BUY', 'Buy'
+        SELL = 'SELL', 'Sell'
+        HOLD = 'HOLD', 'Hold'
+    
+    class Horizon(models.TextChoices):
+        DAILY = 'DAILY', 'Daily'
+        WEEKLY = 'WEEKLY', 'Weekly'
+
+    horizon = models.CharField(max_length=10, choices=Horizon.choices, unique=True)
+    signal = models.CharField(max_length=10, choices=Signal.choices)
+    confidence = models.FloatField() # درصد اطمینان
+    model_file = models.FileField(upload_to='ml_models/')
+    trained_at = models.DateTimeField(auto_now=True)
+    model_accuracy = models.FloatField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Prediction for {self.get_horizon_display()}: {self.signal} ({self.confidence:.2f}%)"

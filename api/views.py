@@ -22,7 +22,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import (
     User, GoldTransaction, RialTransaction, Price, FAQ, License,
     GoldWallet, RialWallet, BankAccount,Ticket, UserVerification,
-    TechnicalAnalysis,
+    TechnicalAnalysis, PricePrediction,
 )
 from .serializers import (
     UserSerializer, GoldTransactionSerializer, RialTransactionSerializer,
@@ -32,7 +32,7 @@ from .serializers import (
     TicketDetailSerializer, TicketAnswerSerializer, UserVerificationSerializer,
     AdminVerificationSerializer, UserVerificationSubmitSerializer,
     AdminRejectionSerializer, AdminLicenseSerializer, TechnicalAnalysisSerializer,
-    UserCreateSerializer
+    UserCreateSerializer, SignalPredictionSerializer,
 )
 
 from .permissions import IsVerifiedUser
@@ -575,3 +575,21 @@ class TechnicalAnalysisView(APIView):
             {"error": f"Analysis data for timeframe '{db_timeframe}' is not available yet."}, 
             status=status.HTTP_404_NOT_FOUND
         )
+    
+
+class SignalPredictionView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        horizon_param = request.query_params.get('horizon', 'daily').upper()
+        
+        horizon = PricePrediction.Horizon.DAILY
+        if horizon_param == 'WEEKLY':
+            horizon = PricePrediction.Horizon.WEEKLY
+        
+        try:
+            prediction = PricePrediction.objects.get(horizon=horizon)
+            serializer = SignalPredictionSerializer(prediction)
+            return Response(serializer.data)
+        except PricePrediction.DoesNotExist:
+            return Response({"error": f"Prediction for {horizon} not available yet."}, status=404)

@@ -11,7 +11,7 @@ from .views import (
     LogoutView, PaymentWebhookView, PriceChartView,MyTokenObtainPairView,
     LatestPriceView, UserBankAccountViewSet, AdminBankAccountViewSet,
     TicketViewSet, AdminVerificationViewSet, UserVerificationView,
-    AdminLicenseViewSet, TechnicalAnalysisView,
+    AdminLicenseViewSet, TechnicalAnalysisView, SignalPredictionView,
 )
 
 router = DefaultRouter()
@@ -38,5 +38,6 @@ urlpatterns = [
     path('auth/token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('verification/status', UserVerificationView.as_view(), name='verification-status'),
+    path('prices/predict-signal/', SignalPredictionView.as_view(), name='price-predict-signal'),
     path('', include(router.urls)),
 ]

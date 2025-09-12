@@ -5,7 +5,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from .models import (
     User, GoldWallet, RialWallet, GoldTransaction, RialTransaction,
     Price, FAQ, License, BankAccount, Ticket, TicketAttachment,
-    UserVerification, TechnicalAnalysis,
+    UserVerification, TechnicalAnalysis, PricePrediction,
 )
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -255,3 +255,9 @@ class TechnicalAnalysisSerializer(serializers.ModelSerializer):
             'summary_signal',
             'calculated_at'
         ]
+        
+
+class SignalPredictionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PricePrediction
+        fields = ['horizon', 'signal', 'confidence', 'trained_at', 'model_accuracy']
