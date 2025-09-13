@@ -228,13 +228,16 @@ class AdminRejectionSerializer(serializers.Serializer):
 # --- UPDATE the AdminVerificationSerializer ---
 class AdminVerificationSerializer(serializers.ModelSerializer):
     user_email = serializers.EmailField(source='user.email', read_only=True)
+    user_username = serializers.CharField(source='user.username', read_only=True)
+    user_phone_number = serializers.CharField(source='user.phone_number', read_only=True)
+    user_national_id = serializers.CharField(source='user.national_id', read_only=True)
     # This field creates the clickable link to the detail page
     url = serializers.HyperlinkedIdentityField(view_name='api:admin-verification-detail')
     
     class Meta:
         model = UserVerification
         # Add 'url' to the fields list
-        fields = ['url', 'id', 'user_email', 'status', 'image', 'admin_notes', 'submitted_at']
+        fields = ['url', 'id', 'user_username', 'user_phone_number', 'user_national_id', 'user_email', 'status', 'image', 'admin_notes', 'submitted_at']
         read_only_fields = ['image', 'submitted_at', 'user_email']
 
 class TechnicalAnalysisSerializer(serializers.ModelSerializer):
