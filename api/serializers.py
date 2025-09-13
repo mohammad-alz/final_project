@@ -305,3 +305,12 @@ class AdminFAQSerializer(serializers.ModelSerializer):
         # Admins can see and edit all fields
         fields = '__all__'
 
+class AdminRialTransactionSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField()
+    bank_account = serializers.StringRelatedField() # Display as string
+    url = serializers.HyperlinkedIdentityField(view_name='api:admin-rial-transaction-detail')
+
+    class Meta:
+        model = RialTransaction
+        fields = '__all__'
+

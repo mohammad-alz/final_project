@@ -1,6 +1,7 @@
 from django_filters import rest_framework as filters
 from .models import (
-    GoldTransaction, Ticket,
+    GoldTransaction, Ticket, RialTransaction,
+    
 )
 
 class GoldTransactionFilter(filters.FilterSet):
@@ -14,4 +15,9 @@ class TicketFilter(filters.FilterSet):
         model = Ticket
         # Define the fields you want to filter on
         fields = ['user', 'status', 'priority']
+
+class RialTransactionFilter(filters.FilterSet):
+    class Meta:
+        model = RialTransaction
+        fields = ['user', 'status', 'transaction_type']
 

@@ -36,7 +36,8 @@ class CustomAPIRootView(APIView):
             "admin-gold-transaction": reverse("api:admin-gold-transaction-list", request=request),
             "admin-ticket": reverse("api:admin-ticket-list", request=request),
             "admin-faq": reverse("api:admin-faq-list", request=request),
-            "admin-report-dashboard": reverse("api:admin-report-dashboard", request=request)
+            "admin-report-dashboard": reverse("api:admin-report-dashboard", request=request),
+            "admin-rial-transaction": reverse("api:admin-rial-transaction-list", request=request),
         }
         return Response(dict(sorted(data.items())))
 

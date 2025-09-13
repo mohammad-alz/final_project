@@ -35,10 +35,12 @@ from .serializers import (
     AdminRejectionSerializer, AdminLicenseSerializer, TechnicalAnalysisSerializer,
     UserCreateSerializer, SignalPredictionSerializer, AdminUserSerializer,
     AdminGoldTransactionSerializer, AdminTicketSerializer, AdminFAQSerializer,
+    AdminRialTransactionSerializer,
 )
 
 from .filters import (
-    GoldTransactionFilter, TicketFilter,
+    GoldTransactionFilter, TicketFilter, RialTransactionFilter,
+
 )
 
 from .permissions import IsVerifiedUser
@@ -666,3 +668,51 @@ class ReportingDashboardView(APIView):
         }
         
         return Response(data)
+    
+class AdminRialTransactionViewSet(viewsets.ModelViewSet):
+    """
+    An endpoint for admins to view, filter, and manage all Rial transactions.
+    """
+    serializer_class = AdminRialTransactionSerializer
+    permission_classes = [permissions.IsAdminUser]
+    queryset = RialTransaction.objects.all().order_by('-timestamp')
+    filterset_class = RialTransactionFilter
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """Approves a pending transaction and updates the user's wallet."""
+        transaction_obj = self.get_object()
+        if transaction_obj.status != 'PENDING':
+            return Response({'error': 'This transaction is not pending.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            # If it's a deposit, add the money to the user's wallet
+            if transaction_obj.transaction_type == 'DEPOSIT':
+                wallet = RialWallet.objects.select_for_update().get(user=transaction_obj.user)
+                wallet.balance += transaction_obj.amount
+                wallet.save()
+            
+            # If it's a withdrawal, the money was already subtracted. We just confirm it.
+            transaction_obj.status = 'COMPLETED'
+            transaction_obj.save()
+            
+        return Response({'status': f"Transaction {transaction_obj.id} approved."})
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Rejects a pending transaction and refunds the user if it was a withdrawal."""
+        transaction_obj = self.get_object()
+        if transaction_obj.status != 'PENDING':
+            return Response({'error': 'This transaction is not pending.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            # If a withdrawal is rejected, refund the money to the user's wallet
+            if transaction_obj.transaction_type == 'WITHDRAWAL':
+                wallet = RialWallet.objects.select_for_update().get(user=transaction_obj.user)
+                wallet.balance += transaction_obj.amount
+                wallet.save()
+
+            transaction_obj.status = 'FAILED'
+            transaction_obj.save()
+
+        return Response({'status': f"Transaction {transaction_obj.id} rejected."})

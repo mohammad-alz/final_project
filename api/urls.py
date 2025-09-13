@@ -13,7 +13,7 @@ from .views import (
     TicketViewSet, AdminVerificationViewSet, UserVerificationView,
     AdminLicenseViewSet, TechnicalAnalysisView, SignalPredictionView,
     AdminUserViewSet, AdminGoldTransactionViewSet, AdminTicketViewSet,
-    AdminFAQViewSet, ReportingDashboardView,
+    AdminFAQViewSet, ReportingDashboardView, AdminRialTransactionViewSet,
 )
 
 router = DefaultRouter()
@@ -34,6 +34,7 @@ router.register(r'admin/users', AdminUserViewSet, basename='admin-user')
 router.register(r'admin/gold-transactions', AdminGoldTransactionViewSet, basename='admin-gold-transaction')
 router.register(r'admin/tickets', AdminTicketViewSet, basename='admin-ticket')
 router.register(r'admin/faqs', AdminFAQViewSet, basename='admin-faq')
+router.register(r'admin/rial-transactions', AdminRialTransactionViewSet, basename='admin-rial-transaction')
 
 urlpatterns = [
     path('auth/logout/', LogoutView.as_view(), name='auth_logout'),
