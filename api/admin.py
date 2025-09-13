@@ -3,7 +3,7 @@ from .models import (
     User, GoldWallet, RialWallet, GoldTransaction,
     RialTransaction, Price, FAQ, License, BankAccount,
     Ticket, TicketAttachment, UserVerification,
-    TechnicalAnalysis,
+    TechnicalAnalysis, PricePrediction,
 )
 
 class UserAdmin(admin.ModelAdmin):
@@ -89,6 +89,11 @@ class TechnicalAnalysisAdmin(admin.ModelAdmin):
         'summary_signal',
         'calculated_at')
     
+class PricePredictionAdmin(admin.ModelAdmin):
+    list_display = ('signal' , 'horizon', 'confidence', 'model_accuracy', 'trained_at')
+    list_filter = ('signal', 'horizon')
+    readonly_fields = ('signal', 'horizon')
+    
 
 admin.site.register(User, UserAdmin)
 admin.site.register(GoldWallet, GoldWalletAdmin)
@@ -103,3 +108,4 @@ admin.site.register(Ticket, TicketAdmin)
 admin.site.register(TicketAttachment, TicketAttachmentAdmin)
 admin.site.register(UserVerification, UserVerificationAdmin)
 admin.site.register(TechnicalAnalysis, TechnicalAnalysisAdmin)
+admin.site.register(PricePrediction, PricePredictionAdmin)
