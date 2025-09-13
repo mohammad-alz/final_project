@@ -261,3 +261,47 @@ class SignalPredictionSerializer(serializers.ModelSerializer):
     class Meta:
         model = PricePrediction
         fields = ['horizon', 'signal', 'confidence', 'trained_at', 'model_accuracy']
+
+# api/serializers.py
+
+class AdminUserSerializer(serializers.ModelSerializer):
+    # --- ADD THIS LINE ---
+    # This field creates the clickable link to the detail page
+    url = serializers.HyperlinkedIdentityField(view_name='api:admin-user-detail')
+
+    class Meta:
+        model = User
+        # Add 'url' to the beginning of the fields list
+        fields = [
+            'url', 'id', 'username', 'email', 'phone_number', 'first_name', 'last_name',
+            'is_active', 'is_staff', 'date_joined'
+        ]
+
+
+class AdminGoldTransactionSerializer(serializers.ModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name="api:admin-gold-transaction-detail")
+    class Meta:
+        model = GoldTransaction
+        # Show all fields to the admin
+        fields = '__all__'
+
+class AdminTicketSerializer(serializers.ModelSerializer):
+    # Include related data for context
+    user = serializers.StringRelatedField(read_only=True)
+    attachments = TicketAttachmentSerializer(many=True, read_only=True)
+    answered_by = serializers.StringRelatedField(read_only=True)
+    url = serializers.HyperlinkedIdentityField(view_name='api:admin-ticket-detail')
+
+    class Meta:
+        model = Ticket
+        fields = '__all__'
+        # The user who created the ticket cannot be changed
+        read_only_fields = ['user', 'created_at']
+
+class AdminFAQSerializer(serializers.ModelSerializer):
+    url = serializers.HyperlinkedIdentityField(view_name="api:admin-faq-detail")
+    class Meta:
+        model = FAQ
+        # Admins can see and edit all fields
+        fields = '__all__'
+

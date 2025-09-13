@@ -32,6 +32,11 @@ class CustomAPIRootView(APIView):
             "verification-status": reverse("api:verification-status", request=request),
             "admin-license": reverse("api:admin-license-list", request=request),
             "price-predict-signal": reverse("api:price-predict-signal", request=request),
+            "admin-user": reverse("api:admin-user-list", request=request),
+            "admin-gold-transaction": reverse("api:admin-gold-transaction-list", request=request),
+            "admin-ticket": reverse("api:admin-ticket-list", request=request),
+            "admin-faq": reverse("api:admin-faq-list", request=request),
+            "admin-report-dashboard": reverse("api:admin-report-dashboard", request=request)
         }
         return Response(dict(sorted(data.items())))
 

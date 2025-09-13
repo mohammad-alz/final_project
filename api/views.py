@@ -9,6 +9,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.utils import timezone
 from django.conf import settings
+from django.db.models import Sum
 from rest_framework import viewsets, permissions, status, mixins,generics
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.views import APIView
@@ -32,7 +33,12 @@ from .serializers import (
     TicketDetailSerializer, TicketAnswerSerializer, UserVerificationSerializer,
     AdminVerificationSerializer, UserVerificationSubmitSerializer,
     AdminRejectionSerializer, AdminLicenseSerializer, TechnicalAnalysisSerializer,
-    UserCreateSerializer, SignalPredictionSerializer,
+    UserCreateSerializer, SignalPredictionSerializer, AdminUserSerializer,
+    AdminGoldTransactionSerializer, AdminTicketSerializer, AdminFAQSerializer,
+)
+
+from .filters import (
+    GoldTransactionFilter, TicketFilter,
 )
 
 from .permissions import IsVerifiedUser
@@ -415,25 +421,6 @@ class TicketViewSet(viewsets.ModelViewSet):
             return TicketCreateSerializer
         # For 'list', 'retrieve', etc., use the detail serializer
         return TicketDetailSerializer
-    
-    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
-    def answer(self, request, pk=None):
-        """
-        Allows an admin to post an answer to a ticket.
-        """
-        ticket = self.get_object()
-        serializer = TicketAnswerSerializer(data=request.data)
-        
-        if serializer.is_valid():
-            ticket.answer = serializer.validated_data['answer']
-            ticket.answered_by = request.user
-            ticket.answered_at = timezone.now()
-            ticket.status = Ticket.Status.CLOSED # Optionally close the ticket
-            ticket.save()
-            # Return the full, updated ticket details
-            return Response(TicketDetailSerializer(ticket).data)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
     def destroy(self, request, *args, **kwargs):
         """
@@ -593,3 +580,89 @@ class SignalPredictionView(APIView):
             return Response(serializer.data)
         except PricePrediction.DoesNotExist:
             return Response({"error": f"Prediction for {horizon} not available yet."}, status=404)
+        
+
+class AdminUserViewSet(viewsets.ModelViewSet):
+    """
+    An endpoint for admins to view, update, and soft-delete any user.
+    """
+    serializer_class = AdminUserSerializer
+    permission_classes = [permissions.IsAdminUser]
+    # The queryset includes all users, active and inactive
+    queryset = User.objects.all()
+
+class AdminGoldTransactionViewSet(viewsets.ModelViewSet):
+    """
+    An endpoint for admins to view, update, and delete any gold transaction.
+    """
+    serializer_class = AdminGoldTransactionSerializer
+    permission_classes = [permissions.IsAdminUser]
+    # The queryset includes all transactions from all users
+    queryset = GoldTransaction.objects.all()
+    filterset_class = GoldTransactionFilter
+
+class AdminTicketViewSet(viewsets.ModelViewSet):
+    """
+    An endpoint for admins to view, filter, and manage all tickets.
+    """
+    serializer_class = AdminTicketSerializer
+    permission_classes = [permissions.IsAdminUser]
+    # Use the 'all_objects' manager if you want to see soft-deleted tickets too
+    queryset = Ticket.objects.all().order_by('-created_at')
+    # Connect the filter class
+    filterset_class = TicketFilter
+
+class AdminFAQViewSet(viewsets.ModelViewSet):
+    """
+    An endpoint for admins to create, update, and manage all FAQs.
+    """
+    serializer_class = AdminFAQSerializer
+    permission_classes = [permissions.IsAdminUser]
+    # Use the 'all_objects' manager to see both active and inactive (soft-deleted) FAQs
+    queryset = FAQ.all_objects.all().order_by('sort_order')
+
+class ReportingDashboardView(APIView):
+    """
+    An admin-only endpoint that provides a summary report of platform activity.
+    Can be filtered by a 'period' query parameter: daily, monthly, yearly.
+    """
+    permission_classes = [permissions.IsAdminUser]
+
+    def get(self, request, *args, **kwargs):
+        # --- Date Filtering ---
+        period = request.query_params.get('period', None)
+        end_date = timezone.now()
+        start_date = None
+
+        if period == 'daily':
+            start_date = end_date.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif period == 'monthly':
+            start_date = end_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        elif period == 'yearly':
+            start_date = end_date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        # Base queryset for transactions
+        transactions = GoldTransaction.objects.all()
+        if start_date:
+            transactions = transactions.filter(timestamp__gte=start_date)
+
+        # --- Calculations ---
+        total_gold_bought = transactions.filter(transaction_type='BUY').aggregate(total=Sum('quantity'))['total'] or 0
+        total_gold_sold = transactions.filter(transaction_type='SELL').aggregate(total=Sum('quantity'))['total'] or 0
+        total_fees = transactions.aggregate(total=Sum('fees'))['total'] or 0
+        
+        # These are not filtered by date, as they represent the current total state
+        total_rial_in_wallets = RialWallet.objects.aggregate(total=Sum('balance'))['total'] or 0
+        total_gold_in_wallets = GoldWallet.objects.aggregate(total=Sum('balance'))['total'] or 0
+        
+        # --- Construct Response ---
+        data = {
+            'report_period': period or 'all_time',
+            'total_gold_bought_mg': total_gold_bought,
+            'total_gold_sold_mg': total_gold_sold,
+            'total_fees_earned_rials': total_fees,
+            'current_total_rial_in_wallets': total_rial_in_wallets,
+            'current_total_gold_in_wallets_mg': total_gold_in_wallets,
+        }
+        
+        return Response(data)

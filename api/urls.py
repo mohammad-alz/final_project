@@ -12,6 +12,8 @@ from .views import (
     LatestPriceView, UserBankAccountViewSet, AdminBankAccountViewSet,
     TicketViewSet, AdminVerificationViewSet, UserVerificationView,
     AdminLicenseViewSet, TechnicalAnalysisView, SignalPredictionView,
+    AdminUserViewSet, AdminGoldTransactionViewSet, AdminTicketViewSet,
+    AdminFAQViewSet, ReportingDashboardView,
 )
 
 router = DefaultRouter()
@@ -28,6 +30,10 @@ router.register(r'admin/bank-accounts', AdminBankAccountViewSet, basename='admin
 router.register(r'tickets', TicketViewSet, basename='ticket')
 router.register(r'admin/verifications', AdminVerificationViewSet, basename='admin-verification')
 router.register(r'admin/licenses', AdminLicenseViewSet, basename='admin-license')
+router.register(r'admin/users', AdminUserViewSet, basename='admin-user')
+router.register(r'admin/gold-transactions', AdminGoldTransactionViewSet, basename='admin-gold-transaction')
+router.register(r'admin/tickets', AdminTicketViewSet, basename='admin-ticket')
+router.register(r'admin/faqs', AdminFAQViewSet, basename='admin-faq')
 
 urlpatterns = [
     path('auth/logout/', LogoutView.as_view(), name='auth_logout'),
@@ -39,5 +45,6 @@ urlpatterns = [
     path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('verification/status', UserVerificationView.as_view(), name='verification-status'),
     path('prices/predict-signal/', SignalPredictionView.as_view(), name='price-predict-signal'),
+    path('admin/reports/dashboard/', ReportingDashboardView.as_view(), name='admin-report-dashboard'),
     path('', include(router.urls)),
 ]
