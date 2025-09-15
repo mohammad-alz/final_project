@@ -45,7 +45,6 @@ from .filters import (
 
 from .permissions import IsVerifiedUser
 
-# --- User and Public Views ---
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -55,20 +54,16 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Users can only see/edit their own profile
         return self.queryset.filter(pk=self.request.user.pk)
 
     def get_permissions(self):
-        # The 'create' action (registration) is public
         if self.action == 'create':
             self.permission_classes = [permissions.AllowAny]
         return super().get_permissions()
         
     def get_serializer_class(self):
-        # For the 'create' action, use the new registration serializer
         if self.action == 'create':
             return UserCreateSerializer
-        # For all other actions (GET, PUT, PATCH), use the display serializer
         return UserSerializer
     
     def destroy(self, request, *args, **kwargs):
@@ -97,9 +92,7 @@ class AdminLicenseViewSet(viewsets.ModelViewSet):
     """
     serializer_class = AdminLicenseSerializer
     permission_classes = [permissions.IsAdminUser]
-    # Admins should be able to see all licenses, including inactive ones
     queryset = License.all_objects.all()
-    # Required for the image upload
     parser_classes = [MultiPartParser, FormParser]
 
 class LatestPriceView(generics.GenericAPIView):
@@ -107,11 +100,10 @@ class LatestPriceView(generics.GenericAPIView):
     An endpoint that returns only the single, most recent price object.
     """
     permission_classes = [permissions.AllowAny]
-    serializer_class = PriceSerializer # Reuse the existing PriceSerializer
+    serializer_class = PriceSerializer
 
     def get(self, request, *args, **kwargs):
         try:
-            # This is a very efficient way to get the latest record
             latest_price = Price.objects.latest('timestamp')
             serializer = self.get_serializer(latest_price)
             return Response(serializer.data)
@@ -119,24 +111,18 @@ class LatestPriceView(generics.GenericAPIView):
             return Response({"error": "No price data available."}, status=status.HTTP_404_NOT_FOUND)
 
 
-# --- Trading and Wallet Logic ---
-
 class GoldTradeViewSet(mixins.ListModelMixin,viewsets.GenericViewSet):
     permission_classes = [permissions.IsAuthenticated, IsVerifiedUser]
-    # Connect the new serializer to the view
     serializer_class = GoldTradeSerializer
     queryset = GoldTransaction.objects.none()
     
     def _trade(self, request, trade_type):
         user = request.user
 
-        # --- THIS IS THE NEW VALIDATION LOGIC ---
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         quantity_in_milligrams = serializer.validated_data['quantity']
-        # ----------------------------------------
         
-        # The rest of the logic is the same as before
         try:
             price_per_gram = Price.objects.latest('timestamp').price
         except Price.DoesNotExist:
@@ -146,7 +132,6 @@ class GoldTradeViewSet(mixins.ListModelMixin,viewsets.GenericViewSet):
         final_rial_value = int(round(exact_value))
 
         with transaction.atomic():
-            # ... (the rest of the transaction logic is unchanged) ...
             gold_wallet = GoldWallet.objects.select_for_update().get(user=user)
             rial_wallet = RialWallet.objects.select_for_update().get(user=user)
 
@@ -177,22 +162,17 @@ class RialWalletViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     queryset = RialTransaction.objects.none()
 
     def get_serializer_class(self):
-        # Use our new input serializer for the deposit and withdraw actions
         if self.action in ['deposit', 'withdraw']:
             return RialTransactionActionSerializer
-        # Use the default serializer for other actions (like the list view)
         return RialTransactionSerializer
     
     def get_serializer(self, *args, **kwargs):
-        # This method dynamically filters the queryset for the dropdown field
         serializer = super().get_serializer(*args, **kwargs)
         if self.action in ['deposit', 'withdraw']:
-            # Get only the current user's VERIFIED bank accounts
             user_accounts = BankAccount.objects.filter(
                 user=self.request.user,
                 status=BankAccount.VerificationStatus.VERIFIED
             )
-            # Apply this filtered queryset to the dropdown field
             serializer.fields['bank_account'].queryset = user_accounts
         return serializer
 
@@ -237,8 +217,6 @@ class RialWalletViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         return Response({'message': 'Withdrawal request received', 'transaction': response_serializer.data}, status=status.HTTP_202_ACCEPTED)
 
 
-# --- Transaction History ---
-
 class TransactionHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -253,8 +231,6 @@ class GoldTransactionHistoryViewSet(TransactionHistoryViewSet):
 class RialTransactionHistoryViewSet(TransactionHistoryViewSet):
     serializer_class = RialTransactionSerializer
 
-
-# --- Authentication and Webhooks ---
 
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -324,31 +300,23 @@ class PriceChartView(APIView):
         else: # 'daily'
             start_date = end_date - timedelta(days=1)
         
-        # 1. Get the full queryset for the time range
         queryset = Price.objects.filter(
             timestamp__gte=start_date
         ).order_by('timestamp')
         
-        # 2. Perform sampling only if necessary
         total_points_in_db = queryset.count()
 
         if total_points_in_db > points_count:
-            # Get a list of all the primary keys (IDs) in the queryset
             all_pks = list(queryset.values_list('pk', flat=True))
             
-            # Calculate a floating-point step
             step = (total_points_in_db - 1) / (points_count - 1)
             
-            # Find the indices of the points we want to pick
             sampled_indices = [int(round(i * step)) for i in range(points_count)]
             
-            # Get the primary keys (IDs) at those specific indices
             sampled_pks = [all_pks[i] for i in sampled_indices]
             
-            # Fetch only the objects with those specific IDs
             sampled_queryset = Price.objects.filter(pk__in=sampled_pks).order_by('timestamp')
         else:
-            # If we don't have enough data to sample, return it all
             sampled_queryset = queryset
 
         serializer = PriceSerializer(sampled_queryset, many=True)
@@ -361,7 +329,6 @@ class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
 class UserBankAccountViewSet(viewsets.ModelViewSet):
-    # Use the new, simpler serializer that has no URL field
     serializer_class = UserBankAccountSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -371,7 +338,6 @@ class UserBankAccountViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-# --- View for ADMINS to manage all accounts ---
 class AdminBankAccountViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Allows admins to view all bank accounts and verify them.
@@ -407,21 +373,17 @@ class TicketViewSet(viewsets.ModelViewSet):
     Allows users to create and manage their support tickets.
     """
     permission_classes = [permissions.IsAuthenticated]
-    # Add parsers to handle file uploads
     parser_classes = [MultiPartParser, FormParser]
 
     def get_queryset(self):
-        # A user can only see their own tickets
         return Ticket.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
-        # Automatically assign the ticket to the logged-in user
         serializer.save(user=self.request.user)
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
             return TicketCreateSerializer
-        # For 'list', 'retrieve', etc., use the detail serializer
         return TicketDetailSerializer
         
     def destroy(self, request, *args, **kwargs):
@@ -432,7 +394,6 @@ class TicketViewSet(viewsets.ModelViewSet):
         ticket = self.get_object()
         
         if ticket.status == Ticket.Status.OPEN:
-            # This calls the original method to permanently delete the object
             return super().destroy(request, *args, **kwargs)
         else:
             return Response(
@@ -452,7 +413,6 @@ class TicketViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # If the status is OPEN, proceed with the normal update logic
         return super().update(request, *args, **kwargs)
     
 class UserVerificationView(generics.GenericAPIView):
@@ -463,7 +423,6 @@ class UserVerificationView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
     
-    # This tells the view (and the browsable API) which serializer to use for POST
     serializer_class = UserVerificationSubmitSerializer
 
     def get(self, request, *args, **kwargs):
@@ -473,7 +432,6 @@ class UserVerificationView(generics.GenericAPIView):
         if not latest_verification:
             return Response({'status': UserVerification.Status.NOT_SUBMITTED})
             
-        # For displaying the status, we still use the detailed serializer
         serializer = UserVerificationSerializer(latest_verification)
         return Response(serializer.data)
 
@@ -487,11 +445,9 @@ class UserVerificationView(generics.GenericAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
             
-        # Use the get_serializer() method provided by GenericAPIView
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        # Create a new verification object
         serializer.save(
             user=request.user, 
             status=UserVerification.Status.PENDING,
@@ -500,7 +456,6 @@ class UserVerificationView(generics.GenericAPIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-# --- View for ADMINS to manage all submissions ---
 class AdminVerificationViewSet(viewsets.ReadOnlyModelViewSet):
     """
     Allows admins to list, review, and approve/reject submissions.
@@ -511,11 +466,8 @@ class AdminVerificationViewSet(viewsets.ReadOnlyModelViewSet):
     def get_serializer_class(self):
         if self.action == 'reject':
             return AdminRejectionSerializer
-        # --- ADD THIS CHECK ---
-        # For the 'verify' action, we don't need any input fields.
         if self.action == 'verify':
             return EmptySerializer
-        # For all other actions (like list/retrieve), use the main serializer.
         return AdminVerificationSerializer
 
     @action(detail=True, methods=['post'])
@@ -543,18 +495,14 @@ class TechnicalAnalysisView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request, *args, **kwargs):
-        # Get the timeframe from the URL, default to '1D' (daily)
         user_input = request.query_params.get('timeframe', '1d').lower()
         
-        # Map the user's input to the timeframe stored in the database ('1D' or '1W')
         if user_input in ['weekly', '1w', '7d']:
             db_timeframe = '1W'
         else: # Default to daily
             db_timeframe = '1D'
             
-        # Get the analysis for the mapped timeframe
         latest_analysis = TechnicalAnalysis.objects.filter(timeframe=db_timeframe).first()
-        # --- END OF FIX ---
         
         if latest_analysis:
             serializer = TechnicalAnalysisSerializer(latest_analysis)
@@ -590,7 +538,6 @@ class AdminUserViewSet(viewsets.ModelViewSet):
     """
     serializer_class = AdminUserSerializer
     permission_classes = [permissions.IsAdminUser]
-    # The queryset includes all users, active and inactive
     queryset = User.objects.all()
 
 class AdminGoldTransactionViewSet(viewsets.ModelViewSet):
@@ -599,7 +546,6 @@ class AdminGoldTransactionViewSet(viewsets.ModelViewSet):
     """
     serializer_class = AdminGoldTransactionSerializer
     permission_classes = [permissions.IsAdminUser]
-    # The queryset includes all transactions from all users
     queryset = GoldTransaction.objects.all()
     filterset_class = GoldTransactionFilter
 
@@ -609,9 +555,7 @@ class AdminTicketViewSet(viewsets.ModelViewSet):
     """
     serializer_class = AdminTicketSerializer
     permission_classes = [permissions.IsAdminUser]
-    # Use the 'all_objects' manager if you want to see soft-deleted tickets too
     queryset = Ticket.objects.all().order_by('-created_at')
-    # Connect the filter class
     filterset_class = TicketFilter
 
 class AdminFAQViewSet(viewsets.ModelViewSet):
@@ -620,7 +564,6 @@ class AdminFAQViewSet(viewsets.ModelViewSet):
     """
     serializer_class = AdminFAQSerializer
     permission_classes = [permissions.IsAdminUser]
-    # Use the 'all_objects' manager to see both active and inactive (soft-deleted) FAQs
     queryset = FAQ.all_objects.all().order_by('sort_order')
 
 class ReportingDashboardView(APIView):
@@ -631,7 +574,6 @@ class ReportingDashboardView(APIView):
     permission_classes = [permissions.IsAdminUser]
 
     def get(self, request, *args, **kwargs):
-        # --- Date Filtering ---
         period = request.query_params.get('period', None)
         end_date = timezone.now()
         start_date = None
@@ -643,21 +585,17 @@ class ReportingDashboardView(APIView):
         elif period == 'yearly':
             start_date = end_date.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
 
-        # Base queryset for transactions
         transactions = GoldTransaction.objects.all()
         if start_date:
             transactions = transactions.filter(timestamp__gte=start_date)
 
-        # --- Calculations ---
         total_gold_bought = transactions.filter(transaction_type='BUY').aggregate(total=Sum('quantity'))['total'] or 0
         total_gold_sold = transactions.filter(transaction_type='SELL').aggregate(total=Sum('quantity'))['total'] or 0
         total_fees = transactions.aggregate(total=Sum('fees'))['total'] or 0
         
-        # These are not filtered by date, as they represent the current total state
         total_rial_in_wallets = RialWallet.objects.aggregate(total=Sum('balance'))['total'] or 0
         total_gold_in_wallets = GoldWallet.objects.aggregate(total=Sum('balance'))['total'] or 0
         
-        # --- Construct Response ---
         data = {
             'report_period': period or 'all_time',
             'total_gold_bought_mg': total_gold_bought,
@@ -686,13 +624,11 @@ class AdminRialTransactionViewSet(viewsets.ModelViewSet):
             return Response({'error': 'This transaction is not pending.'}, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
-            # If it's a deposit, add the money to the user's wallet
             if transaction_obj.transaction_type == 'DEPOSIT':
                 wallet = RialWallet.objects.select_for_update().get(user=transaction_obj.user)
                 wallet.balance += transaction_obj.amount
                 wallet.save()
             
-            # If it's a withdrawal, the money was already subtracted. We just confirm it.
             transaction_obj.status = 'COMPLETED'
             transaction_obj.save()
             
@@ -706,7 +642,6 @@ class AdminRialTransactionViewSet(viewsets.ModelViewSet):
             return Response({'error': 'This transaction is not pending.'}, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
-            # If a withdrawal is rejected, refund the money to the user's wallet
             if transaction_obj.transaction_type == 'WITHDRAWAL':
                 wallet = RialWallet.objects.select_for_update().get(user=transaction_obj.user)
                 wallet.balance += transaction_obj.amount

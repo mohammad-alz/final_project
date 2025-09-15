@@ -43,7 +43,6 @@ class CustomAPIRootView(APIView):
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # Main API entry point
     path('api/', CustomAPIRootView.as_view(), name='api-root'),
     path('api/', include(('api.urls', 'api'), namespace='api')),
 ]

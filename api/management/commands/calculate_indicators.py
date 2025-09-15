@@ -17,28 +17,22 @@ def calculate_and_save_analysis(timeframe, price_df):
 
     last_price = price_df['close'].iloc[-1]
 
-    # --- Moving Averages ---
     ma_signals = {'buy': 0, 'sell': 0, 'neutral': 0}
     for period in [10, 20, 30, 50, 100, 200]:
         if len(price_df) < period: continue
         ma_signals['buy' if last_price > price_df['close'].rolling(window=period).mean().iloc[-1] else 'sell'] += 1
         ma_signals['buy' if last_price > price_df['close'].ewm(span=period, adjust=False).mean().iloc[-1] else 'sell'] += 1
 
-    # --- Oscillators ---
     osc_signals = {'buy': 0, 'sell': 0, 'neutral': 0}
-    # (Full oscillator calculations from before)
-    # RSI
     delta = price_df['close'].diff(); gain = (delta.where(delta > 0, 0)).rolling(window=14).mean(); loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean(); rsi = 100 - (100 / (1 + (gain/loss)));
     if rsi.iloc[-1] > 70: osc_signals['sell'] += 1
     elif rsi.iloc[-1] < 30: osc_signals['buy'] += 1
     else: osc_signals['neutral'] += 1
-    # Stochastic
     low14 = price_df['low'].rolling(14).min(); high14 = price_df['high'].rolling(14).max(); k_percent = 100 * ((price_df['close'] - low14) / (high14 - low14));
     if k_percent.iloc[-1] > 80: osc_signals['sell'] += 1
     elif k_percent.iloc[-1] < 20: osc_signals['buy'] += 1
     else: osc_signals['neutral'] += 1
     
-    # --- Aggregation and Saving ---
     ma_final_signal = get_final_signal(ma_signals['buy'], ma_signals['sell'], ma_signals['neutral'])
     osc_final_signal = get_final_signal(osc_signals['buy'], osc_signals['sell'], osc_signals['neutral'])
     summary_buy = ma_signals['buy'] + osc_signals['buy']; summary_sell = ma_signals['sell'] + osc_signals['sell']; summary_neutral = ma_signals['neutral'] + osc_signals['neutral']
@@ -69,13 +63,11 @@ class Command(BaseCommand):
         df = pd.DataFrame(list(prices)); df['price'] = pd.to_numeric(df['price']); df['timestamp'] = pd.to_datetime(df['timestamp']); df.set_index('timestamp', inplace=True)
         df['close'] = df['price']; df['high'] = df['price']; df['low'] = df['price']
 
-        # --- Calculate for Daily ('1D') timeframe ---
         daily_df = df.resample('H').last().dropna()
         signal, error = calculate_and_save_analysis('1D', daily_df)
         if error: self.stdout.write(self.style.WARNING(error))
         else: self.stdout.write(self.style.SUCCESS(f"Daily analysis saved with signal: {signal}"))
 
-        # --- Calculate for Weekly ('1W') timeframe ---
         weekly_df = df.resample('D').last().dropna()
         signal, error = calculate_and_save_analysis('1W', weekly_df)
         if error: self.stdout.write(self.style.WARNING(error))

@@ -11,7 +11,6 @@ from .models import (
 class UserCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        # List all fields required for a new user
         fields = [
             'username',
             'email',
@@ -25,20 +24,16 @@ class UserCreateSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
     
     def create(self, validated_data):
-        # This logic correctly hashes the password
         password = validated_data.pop('password')
         user = User(**validated_data)
         user.set_password(password)
         user.save()
         return user
 
-# Your existing UserSerializer for displaying data is still needed
-
 
 class UserProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        # List only the fields you want the user to be able to change
         fields = ['first_name', 'last_name', 'birth_date', 'email', 'phone_number']
 
 class GoldWalletSerializer(serializers.ModelSerializer):
@@ -57,7 +52,6 @@ class UserSerializer(serializers.ModelSerializer):
     rial_wallet = RialWalletSerializer(read_only=True)
     class Meta:
         model = User
-        # Notice this does NOT include the password
         fields = ['url', 'id', 'email', 'phone_number', 'first_name', 'last_name', 'birth_date', 'national_id', 'gold_wallet', 'rial_wallet']
 
 class PriceSerializer(serializers.ModelSerializer):
@@ -83,13 +77,10 @@ class LicenseSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class AdminLicenseSerializer(serializers.ModelSerializer):
-    # --- RENAME THIS FIELD ---
-    # This field creates the clickable link to the API detail page
     api_url = serializers.HyperlinkedIdentityField(view_name='api:admin-license-detail')
 
     class Meta:
         model = License
-        # Add 'api_url' and also include the original 'url' from the model
         fields = ['api_url', 'id', 'name', 'description', 'url', 'image', 'issue_date', 'expire_date', 'status', 'is_active']
 
 class GoldTradeSerializer(serializers.Serializer):
@@ -103,7 +94,6 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     def get_token(cls, user):
         token = super().get_token(user)
 
-        # Add all the custom claims
         token['username'] = user.username
         token['email'] = user.email
         token['first_name'] = user.first_name
@@ -114,7 +104,6 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     
 
 class AdminBankAccountSerializer(serializers.ModelSerializer):
-    # This new field creates the clickable link
     url = serializers.HyperlinkedIdentityField(
         view_name='api:admin-bank-account-detail',
         lookup_field='pk'
@@ -123,31 +112,25 @@ class AdminBankAccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = BankAccount
         read_only_fields = ['user', 'status']
-        # Add 'url' to the beginning of the fields list
         fields = ['url', 'id', 'bank_name', 'card_number', 'status', 'user']
 
 BANK_LOGOS = {
     'mli': 'api/images/bank_logos/mli.png',
     'maaaa3can': 'api/images/bank_logos/maaaa3can.png',
     'beeeluuu': 'api/images/bank_logos/beeeluuu.png',
-    # Add all other bank names and their logo filenames here
 }
 
 class UserBankAccountSerializer(serializers.ModelSerializer):
-    # This new field will contain the URL to the bank's logo
     logo_url = serializers.SerializerMethodField()
     
     class Meta:
         model = BankAccount
         read_only_fields = ['user', 'status']
-        # Add 'logo_url' to the fields list
         fields = ['id', 'bank_name', 'card_number', 'status', 'logo_url']
 
     def get_logo_url(self, obj):
-        # Look up the logo file from our dictionary
         logo_path = BANK_LOGOS.get(obj.bank_name)
         if logo_path:
-            # Return the full URL to the static file
             return self.context['request'].build_absolute_uri(
                 staticfiles_storage.url(logo_path)
             )
@@ -165,7 +148,6 @@ class RialTransactionSerializer(serializers.ModelSerializer):
 
 class RialTransactionActionSerializer(serializers.Serializer):
     amount = serializers.IntegerField(min_value=1)
-    # This field will render as a dropdown of the user's bank accounts
     bank_account = serializers.PrimaryKeyRelatedField(
         queryset=BankAccount.objects.all(),
         help_text="Select one of your verified bank accounts."
@@ -188,7 +170,6 @@ class TicketDetailSerializer(serializers.ModelSerializer):
         model = Ticket
         fields = ['url', 'id', 'title', 'description', 'priority', 'status', 'created_at', 'attachments', 'answer', 'answered_at', 'answered_by']
 
-# --- NEW: This serializer is for CREATING/UPDATING a ticket ---
 class TicketCreateSerializer(serializers.ModelSerializer):
     uploaded_attachments = serializers.ListField(
         child=serializers.FileField(allow_empty_file=False),
@@ -197,46 +178,38 @@ class TicketCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ticket
-        # Notice 'status' is NOT in this list
         fields = ['title', 'description', 'priority', 'uploaded_attachments']
 
     def create(self, validated_data):
         uploaded_files = validated_data.pop('uploaded_attachments', [])
-        # The status will be set to its default value ('OPEN') automatically
         ticket = Ticket.objects.create(**validated_data)
         for file in uploaded_files:
             TicketAttachment.objects.create(ticket=ticket, file=file)
         return ticket
     
 
-# This serializer is now just for submitting an image
 class UserVerificationSubmitSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserVerification
         fields = ['image']
 
-# This serializer is for displaying the status of the latest submission
 class UserVerificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserVerification
         fields = ['status', 'image', 'admin_notes', 'submitted_at']
 
-# Serializer for the admin to update the status
 class AdminRejectionSerializer(serializers.Serializer):
     admin_notes = serializers.CharField(style={'base_template': 'textarea.html'})
 
-# --- UPDATE the AdminVerificationSerializer ---
 class AdminVerificationSerializer(serializers.ModelSerializer):
     user_email = serializers.EmailField(source='user.email', read_only=True)
     user_username = serializers.CharField(source='user.username', read_only=True)
     user_phone_number = serializers.CharField(source='user.phone_number', read_only=True)
     user_national_id = serializers.CharField(source='user.national_id', read_only=True)
-    # This field creates the clickable link to the detail page
     url = serializers.HyperlinkedIdentityField(view_name='api:admin-verification-detail')
     
     class Meta:
         model = UserVerification
-        # Add 'url' to the fields list
         fields = ['url', 'id', 'user_username', 'user_phone_number', 'user_national_id', 'user_email', 'status', 'image', 'admin_notes', 'submitted_at']
         read_only_fields = ['image', 'submitted_at', 'user_email']
 
@@ -265,16 +238,12 @@ class SignalPredictionSerializer(serializers.ModelSerializer):
         model = PricePrediction
         fields = ['horizon', 'signal', 'confidence', 'trained_at', 'model_accuracy']
 
-# api/serializers.py
 
 class AdminUserSerializer(serializers.ModelSerializer):
-    # --- ADD THIS LINE ---
-    # This field creates the clickable link to the detail page
     url = serializers.HyperlinkedIdentityField(view_name='api:admin-user-detail')
 
     class Meta:
         model = User
-        # Add 'url' to the beginning of the fields list
         fields = [
             'url', 'id', 'username', 'email', 'phone_number', 'first_name', 'last_name',
             'is_active', 'is_staff', 'date_joined'
@@ -289,7 +258,6 @@ class AdminGoldTransactionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class AdminTicketSerializer(serializers.ModelSerializer):
-    # Include related data for context
     user = serializers.StringRelatedField(read_only=True)
     attachments = TicketAttachmentSerializer(many=True, read_only=True)
     answered_by = serializers.StringRelatedField(read_only=True)
@@ -298,19 +266,17 @@ class AdminTicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
         fields = '__all__'
-        # The user who created the ticket cannot be changed
         read_only_fields = ['user', 'created_at']
 
 class AdminFAQSerializer(serializers.ModelSerializer):
     url = serializers.HyperlinkedIdentityField(view_name="api:admin-faq-detail")
     class Meta:
         model = FAQ
-        # Admins can see and edit all fields
         fields = '__all__'
 
 class AdminRialTransactionSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField()
-    bank_account = serializers.StringRelatedField() # Display as string
+    bank_account = serializers.StringRelatedField()
     url = serializers.HyperlinkedIdentityField(view_name='api:admin-rial-transaction-detail')
 
     class Meta:

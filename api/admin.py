@@ -33,13 +33,10 @@ class PriceAdmin(admin.ModelAdmin):
     ordering = ('-timestamp',)
 
 class FAQAdmin(admin.ModelAdmin):
-    # Display the active status in the list
     list_display = ('question', 'sort_order', 'is_active')
-    # Add a filter for the active status
     list_filter = ('is_active',)
     
     def get_queryset(self, request):
-        # Tell the admin to use the all_objects manager to show all items
         return FAQ.all_objects.all()
     
 class LicenseAdmin(admin.ModelAdmin):
@@ -48,7 +45,6 @@ class LicenseAdmin(admin.ModelAdmin):
     search_fields = ('name',)
     
     def get_queryset(self, request):
-        # Tell the admin to use the all_objects manager to show all items
         return License.all_objects.all()
     
 class BankAccountAdmin(admin.ModelAdmin):

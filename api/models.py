@@ -6,13 +6,9 @@ from django.dispatch import receiver
 from django.core.validators import RegexValidator
 from django.conf import settings
 
-# --- Soft Delete Manager ---
-# This custom manager will automatically filter out objects marked as inactive.
 class SoftDeleteManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().filter(is_active=True)
-
-# --- Core Models ---
 
 class User(AbstractUser):
     birth_date = models.DateField(null=True, blank=True)
@@ -53,20 +49,16 @@ class Price(models.Model):
     price = models.BigIntegerField()
     timestamp = models.DateTimeField(auto_now_add=True)
 
-# --- FAQ Model with Soft Delete ---
 class FAQ(models.Model):
     question = models.TextField()
     answer = models.TextField()
     sort_order = models.IntegerField(default=0)
     
-    # 1. The field to track status. Renamed from is_published for clarity.
     is_active = models.BooleanField(default=True)
 
-    # 2. The managers to handle querying.
-    objects = SoftDeleteManager() # Default manager only shows active FAQs.
-    all_objects = models.Manager() # A second manager to access all FAQs.
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
 
-    # 3. Overridden delete() method.
     def delete(self, using=None, keep_parents=False):
         """Soft deletes the object."""
         self.is_active = False
@@ -89,14 +81,11 @@ class License(models.Model):
     expire_date = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=20, default='ACTIVE')
     
-    # 1. The field to track status. Renamed from is_published for clarity.
     is_active = models.BooleanField(default=True)
 
-    # 2. The managers to handle querying.
-    objects = SoftDeleteManager() # Default manager only shows active FAQs.
-    all_objects = models.Manager() # A second manager to access all FAQs.
+    objects = SoftDeleteManager()
+    all_objects = models.Manager()
 
-    # 3. Overridden delete() method.
     def delete(self, using=None, keep_parents=False):
         """Soft deletes the object."""
         self.is_active = False
@@ -138,7 +127,7 @@ class BankAccount(models.Model):
 class RialTransaction(models.Model):
     bank_account = models.ForeignKey(
         BankAccount, 
-        on_delete=models.SET_NULL, # If account is deleted, keep the transaction record
+        on_delete=models.SET_NULL,
         null=True, 
         blank=True
     )
@@ -171,7 +160,6 @@ class Ticket(models.Model):
 
     answer = models.TextField(blank=True, null=True)
     answered_at = models.DateTimeField(blank=True, null=True)
-    # The admin who answered the ticket
     answered_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -201,13 +189,11 @@ class UserVerification(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE, 
-        related_name='verifications' # Plural name
+        related_name='verifications'
     )
     
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.NOT_SUBMITTED)
-    # Stores the verification image (e.g., National ID)
     image = models.ImageField(upload_to='verifications/%Y/%m/%d/')
-    # Notes from the admin if the submission is rejected
     admin_notes = models.TextField(blank=True, null=True)
     submitted_at = models.DateTimeField(auto_now=True)
 

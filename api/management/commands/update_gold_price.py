@@ -5,9 +5,6 @@ from django.conf import settings
 from api.models import Price
 import pprint
 
-# api/management/commands/update_gold_price.py
-
-# ... (imports are the same)
 
 class Command(BaseCommand):
     help = 'Fetches the latest 18k gold price from BrsApi.ir and saves it to the database in Rials.'
@@ -34,13 +31,12 @@ class Command(BaseCommand):
             if isinstance(data, dict):
                 gold_list = data.get('gold', [])
             elif isinstance(data, list):
-                gold_list = data # The response itself is the list we need
+                gold_list = data
             else:
                 raise CommandError("API response is in an unexpected format.")
 
             price_in_toman = None
             for item in gold_list:
-                # The item must be a dictionary to have a .get() method
                 if isinstance(item, dict) and item.get('symbol') == 'IR_GOLD_18K':
                     price_in_toman = int(item.get('price'))
                     break
